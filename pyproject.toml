@@ -1,0 +1,111 @@
+[project]
+name = "bson"
+version = "0.1.0"
+description = "A native BSON codec implemented in Rust"
+readme = "README.md"
+authors = [
+    { name = "megawattka", email = "killedbyshinku@gmail.com" }
+]
+requires-python = ">=3.12"
+
+dependencies = []
+
+[tool.uv]
+package = true
+default-groups = []
+
+[build-system]
+requires = ["maturin>=1.15,<2.0"]
+build-backend = "maturin"
+
+[dependency-groups]
+dev = [
+    "maturin>=1.16.0",
+    "pytest>=9.2.0",
+    "pyright>=1.1.414",
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+line-length = 79
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint]
+preview = true
+ignore = [
+    "missing-copyright-notice"
+]
+select = ["ALL"]
+unfixable = [
+    "unused-noqa",
+    "T20",  # removes print statements
+    "unused-variable",
+]
+
+[tool.ruff.lint.flake8-builtins]
+strict-checking = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "missing-return-type-undocumented-public-function",
+    "undocumented-public-function",
+    "assert",
+    "undocumented-public-module",
+    "private-member-access",
+    "magic-value-comparison",
+    "import-private-name"
+]
+"benchmarks/*" = ["magic-value-comparison", "assert", "print"]
+"bson/*" = [
+    "undefined-local-with-import-star",
+    "unsorted-imports",
+    "line-too-long",
+    "undocumented-magic-method",
+    "subclass-builtin",
+    "stdlib-module-shadowing",
+    "eq-without-hash",
+    "error-suffix-on-exception-name",
+    "builtin-argument-shadowing"
+]
+"scripts/*" = [
+    "raise-vanilla-args",
+    "f-string-in-exception",
+    "raw-string-in-exception",
+    "implicit-namespace-package",
+]
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions"]
+quote-annotations = true
+strict = true
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pyright]
+exclude = ["_out"]
+typeCheckingMode = "strict"
+
+[[tool.pyright.executionEnvironments]]
+root = "bson"
+reportUnknownVariableType = "none"
+
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportPrivateUsage = "none"
+reportPossiblyUnboundVariable = "none"
+
+[tool.maturin]
+python-source = "."
+module-name = "bson._bson"
+features = ["pyo3/extension-module"]
+exclude = ["src/bson/__init__.pyd", "src/bson/__init__*.so", "src/bson/_bson*", "src/bson/*.pdb", "src/bson/__pycache__/**"]

@@ -1,0 +1,19 @@
+[package]
+name = "megawattka-bson"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "_bson"
+crate-type = ["cdylib"]
+
+[dependencies]
+getrandom = "0.4"
+pyo3 = { version = "0.25", features = ["abi3-py312"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false
+strip = "debuginfo"
