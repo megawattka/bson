@@ -25,7 +25,7 @@ jobs:
           python-version: "3.12"
       - name: Install tools and native package
         run: |
-          python -m pip install "ruff>=0.17.1" "pyright>=1.1.414"
+          python -m pip install "ruff>=0.17.1" "pyright>=1.1.414" "pytest>=9.2"
           python -m pip install .
       - name: Build independent PyMongo reference
         working-directory: ${{ runner.temp }}
@@ -70,4 +70,6 @@ jobs:
           python -c "import bson, _p_bson; from bson import _bson; assert _p_bson.has_c(); assert bson.InvalidBSON is not _p_bson.InvalidBSON; print(_bson.__file__)"
       - name: Run full test suite against installed wheel
         working-directory: ${{ runner.temp }}
-        run: python -m pytest "$GITHUB_WORKSPACE/tests" --import-mode=importlib -q
+        run: |
+          python -c "import os, shutil; from pathlib import Path; shutil.copytree(Path(os.environ['GITHUB_WORKSPACE']) / 'benchmarks', 'benchmarks', dirs_exist_ok=True)"
+          python -m pytest "$GITHUB_WORKSPACE/tests" --import-mode=importlib -q

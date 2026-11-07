@@ -58,6 +58,7 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           python -c "import _p_bson; assert _p_bson.has_c()"
+          python -c "import os, shutil; from pathlib import Path; shutil.copytree(Path(os.environ['GITHUB_WORKSPACE']) / 'benchmarks', 'benchmarks', dirs_exist_ok=True)"
           python -m pytest "$GITHUB_WORKSPACE/tests" --import-mode=importlib -q
       - uses: actions/upload-artifact@v4
         with:
