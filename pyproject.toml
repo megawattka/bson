@@ -7,7 +7,6 @@ authors = [
     { name = "megawattka", email = "killedbyshinku@gmail.com" }
 ]
 requires-python = ">=3.12"
-
 dependencies = []
 
 [tool.uv]
@@ -39,7 +38,7 @@ docstring-code-line-length = "dynamic"
 [tool.ruff.lint]
 preview = true
 ignore = [
-    "missing-copyright-notice"
+    "missing-copyright-notice",
 ]
 select = ["ALL"]
 unfixable = [
@@ -59,7 +58,7 @@ strict-checking = true
     "undocumented-public-module",
     "private-member-access",
     "magic-value-comparison",
-    "import-private-name"
+    "import-private-name",
 ]
 "benchmarks/*" = ["magic-value-comparison", "assert", "print"]
 "bson/*" = [
@@ -109,4 +108,10 @@ reportPossiblyUnboundVariable = "none"
 python-source = "."
 module-name = "bson._bson"
 features = ["pyo3/extension-module"]
-exclude = ["src/bson/__init__.pyd", "src/bson/__init__*.so", "src/bson/_bson*", "src/bson/*.pdb", "src/bson/__pycache__/**"]
+exclude = [
+    "src/bson/__init__.pyd",
+    "src/bson/__init__*.so",
+    "src/bson/_bson*",
+    "src/bson/*.pdb",
+    "src/bson/__pycache__/**",
+]

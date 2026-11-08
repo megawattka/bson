@@ -249,10 +249,9 @@ def render(args: argparse.Namespace) -> None:
             linespacing=1.6,
         )
         figure.tight_layout(rect=(0.025, 0.105, 0.99, 0.90), h_pad=2.2)
-        for suffix in ("png", "svg"):
-            path = args.output / f"{operation}.{suffix}"
-            figure.savefig(path, dpi=180, facecolor="white")  # pyright: ignore[reportUnknownMemberType]
-            print(path)
+        path = args.output / f"{operation}.png"
+        figure.savefig(path, dpi=180, facecolor="white")  # pyright: ignore[reportUnknownMemberType]
+        print(path)
         plt.close(figure)  # pyright: ignore[reportUnknownMemberType]
 
 
