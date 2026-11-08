@@ -5,13 +5,14 @@ import pytest
 
 from bson import (
     CodecOptions,
-    TypeCodec,
-    TypeRegistry,
     decode,
     decode_all,
     encode,
 )
-from bson.codec_options import TypeCodec as ModuleTypeCodec
+from bson.codec_options import (
+    TypeCodec,
+    TypeRegistry,
+)
 from bson.errors import InvalidDocument
 
 
@@ -49,7 +50,6 @@ class DecimalCodec(TypeCodec):
 
 @pytest.mark.parametrize("value", ["0", "-12.3400", "1E+100"])
 def test_type_codec_roundtrip(value: str):
-    assert TypeCodec is ModuleTypeCodec
     codec = DecimalCodec()
     registry = TypeRegistry([codec])
     options = CodecOptions(type_registry=registry)

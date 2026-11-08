@@ -33,10 +33,6 @@ if TYPE_CHECKING:
         DEFAULT_CODEC_OPTIONS as DEFAULT_CODEC_OPTIONS,
         CodecOptions as CodecOptions,
         DatetimeConversion as DatetimeConversion,
-        TypeCodec as TypeCodec,
-        TypeDecoder as TypeDecoder,
-        TypeEncoder as TypeEncoder,
-        TypeRegistry as TypeRegistry,
         UuidRepresentation as UuidRepresentation,
     )
     from .datetime_ms import DatetimeMS as DatetimeMS
