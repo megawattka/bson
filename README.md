@@ -2,7 +2,7 @@
 
 **A fast, native BSON codec for Python 3.12+, powered by Rust and PyO3, with a 1:1-compatible `pymongo.bson` API.**
 
-Encode documents, decode BSON streams, and work with rich BSON types through a 1:1-compatible `pymongo.bson` API. The project focuses on two goals: **speed** and drop-in API compatibility with `pymongo.bson`, while preserving strict BSON validation.
+Encode documents, decode BSON streams, and work with rich BSON types through a 1:1-compatible pymongo `bson` API. The project focuses on two goals: **speed** and drop-in API compatibility with pymongo `bson`, while preserving strict BSON validation.
 
 > **Compatibility warning:** using this package together with PyMongo's BSON implementation is **not recommended**. Both packages use the `bson` import namespace, so installing them in the same environment can cause import conflicts. Their `ObjectId`, `Binary`, `Code`, `Decimal128`, `Timestamp`, `CodecOptions`, and other values are distinct types and must not be mixed.
 
@@ -132,7 +132,7 @@ from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
 
 
 class DecimalCodec(TypeCodec):
-    """Decimal coded."""
+    """Decimal codec."""
 
     @property
     def python_type(self) -> type[Decimal]:
