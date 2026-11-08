@@ -72,6 +72,7 @@ The default representation is `UNSPECIFIED`: choose a representation before enco
 
 ```python
 from datetime import datetime, timezone
+
 from bson import Decimal128, Int64, Regex, Timestamp, decode, encode
 
 document = {
@@ -124,26 +125,32 @@ For example, store `decimal.Decimal` as a BSON string and restore it on decoding
 
 ```python
 from decimal import Decimal
+from typing import override
+
 from bson import decode, decode_all, encode
 from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
 
 
 class DecimalCodec(TypeCodec):
+    """Decimal coded."""
+
     @property
     def python_type(self) -> type[Decimal]:
+        """Python type of value."""
         return Decimal
 
     @property
     def bson_type(self) -> type[str]:
+        """Bson type of value."""
         return str
 
-    def transform_python(self, _value: object) -> str:
-        assert isinstance(_value, Decimal)
-        return str(_value)
+    @override
+    def transform_python(self, value: Decimal) -> str:
+        return str(value)
 
-    def transform_bson(self, _value: object) -> Decimal:
-        assert isinstance(_value, str)
-        return Decimal(_value)
+    @override
+    def transform_bson(self, value: str) -> Decimal:
+        return Decimal(value)
 
 
 registry = TypeRegistry([DecimalCodec()])
@@ -172,11 +179,13 @@ Registry behavior:
 
 ```python
 from decimal import Decimal
+from typing import Any
+
 from bson import decode, encode
 from bson.codec_options import CodecOptions, TypeRegistry
 
 
-def fallback_encoder(value: object) -> str:
+def fallback_encoder(value: Any) -> str:
     if isinstance(value, Decimal):
         return str(value)
     raise TypeError(f"Unsupported value type: {type(value).__name__}")

@@ -29,24 +29,22 @@ class DecimalCodec(TypeCodec):
         return str
 
     @override
-    def transform_python(self, _value: object) -> str:
+    def transform_python(self, value: Decimal) -> str:
         """Convert a decimal to its lossless string representation.
 
         Returns:
             The decimal's string representation, preserving trailing zeros.
         """
-        assert isinstance(_value, Decimal)
-        return str(_value)
+        return str(value)
 
     @override
-    def transform_bson(self, _value: object) -> Decimal:
+    def transform_bson(self, value: str) -> Decimal:
         """Restore a decimal from a decoded string.
 
         Returns:
             The decimal represented by the stored string.
         """
-        assert isinstance(_value, str)
-        return Decimal(_value)
+        return Decimal(value)
 
 
 @pytest.mark.parametrize("value", ["0", "-12.3400", "1E+100"])

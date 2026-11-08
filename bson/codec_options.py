@@ -40,11 +40,11 @@ if TYPE_CHECKING:
             ...
 
         @abstractmethod
-        def transform_python(self, _value: object) -> object:
+        def transform_python(self, value: Any) -> Any:
             """Convert a custom value to a BSON-encodable value.
 
             Args:
-                _value: Value whose exact type matches ``python_type``.
+                value: Value whose exact type matches ``python_type``.
 
             Returns:
                 A replacement value supported by the BSON encoder.
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 
         @property
         @abstractmethod
-        def bson_type(self) -> type[object]:
+        def bson_type(self) -> type[Any]:
             """Decoded Python type handled by this decoder; must be overridden.
 
             Raises:
@@ -73,11 +73,11 @@ if TYPE_CHECKING:
             ...
 
         @abstractmethod
-        def transform_bson(self, _value: object) -> object:
+        def transform_bson(self, value: Any) -> Any:
             """Convert a decoded BSON value to a custom Python value.
 
             Args:
-                _value: Value whose exact type matches ``bson_type``.
+                value: Value whose exact type matches ``bson_type``.
 
             Returns:
                 The custom value to include in the decoded document.

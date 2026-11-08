@@ -1,6 +1,6 @@
 [project]
 name = "bson"
-version = "0.1.0"
+version = "0.2.0"
 description = "A native BSON codec implemented in Rust"
 readme = "README.md"
 authors = [
@@ -71,7 +71,8 @@ strict-checking = true
     "stdlib-module-shadowing",
     "eq-without-hash",
     "error-suffix-on-exception-name",
-    "builtin-argument-shadowing"
+    "builtin-argument-shadowing",
+    "any-type",
 ]
 "scripts/*" = [
     "raise-vanilla-args",
