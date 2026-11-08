@@ -19,12 +19,6 @@ from ._bson import min_key as min_key
 from ._bson import objectid as objectid
 from ._bson import regex as regex
 from ._bson import timestamp as timestamp
-from .codec_options import (
-    TypeCodec as TypeCodec,
-    TypeDecoder as TypeDecoder,
-    TypeEncoder as TypeEncoder,
-    TypeRegistry as TypeRegistry,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Buffer
@@ -39,6 +33,10 @@ if TYPE_CHECKING:
         DEFAULT_CODEC_OPTIONS as DEFAULT_CODEC_OPTIONS,
         CodecOptions as CodecOptions,
         DatetimeConversion as DatetimeConversion,
+        TypeCodec as TypeCodec,
+        TypeDecoder as TypeDecoder,
+        TypeEncoder as TypeEncoder,
+        TypeRegistry as TypeRegistry,
         UuidRepresentation as UuidRepresentation,
     )
     from .datetime_ms import DatetimeMS as DatetimeMS
