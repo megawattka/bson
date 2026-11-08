@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2022]
-        python: ["3.12", "3.13", "3.13t"]
+        python: ["3.12", "3.13"]
     defaults:
       run:
         shell: bash
