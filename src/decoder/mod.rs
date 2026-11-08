@@ -151,8 +151,13 @@ fn document<'a, 'py>(
             }),
             Container::Array(_) => None,
         };
-        match value::decode(py, reader, tag, options)? {
-            Value::Scalar(value) => frame.container.insert(key, &value)?,
+        match value::decode(py, reader, tag, options.clone())? {
+            Value::Scalar(value) => {
+                let value = codec_options::decode_custom(
+                    py, value, options.type_registry.as_ref(),
+                )?;
+                frame.container.insert(key, &value)?;
+            }
             Value::Container { kind, end } => {
                 if stack.len() + 1 >= MAX_DEPTH {
                     return Err(InvalidBSON::new_err("BSON nesting exceeds 100 containers"));
@@ -226,7 +231,7 @@ pub fn decode_all<'py>(
     let mut keys = KeyCache::new();
     while reader.position() < bytes.len() {
         reader.set_limit(bytes.len());
-        result.append(document(data.py(), &mut reader, options, &mut stack, Some(&mut keys))?)?;
+        result.append(document(data.py(), &mut reader, options.clone(), &mut stack, Some(&mut keys))?)?;
     }
     Ok(result)
 }

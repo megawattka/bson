@@ -2,6 +2,8 @@
 
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::{PyList, PyType};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum UuidRepresentation {
@@ -74,12 +76,216 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 /// Codec policies parsed once per operation.
+#[pyclass(module = "bson.codec_options", subclass)]
+pub struct TypeEncoder;
+
+#[pymethods]
+impl TypeEncoder {
+    #[new]
+    fn new() -> Self { Self }
+    #[getter]
+    fn python_type(&self) -> PyResult<Py<PyAny>> {
+        Err(PyTypeError::new_err("TypeEncoder.python_type must be overridden"))
+    }
+
+    fn transform_python(&self, _value: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        Err(PyTypeError::new_err("TypeEncoder.transform_python must be overridden"))
+    }
+}
+
+#[pyclass(module = "bson.codec_options", subclass)]
+pub struct TypeDecoder;
+
+#[pymethods]
+impl TypeDecoder {
+    #[new]
+    fn new() -> Self { Self }
+    #[getter]
+    fn bson_type(&self) -> PyResult<Py<PyAny>> {
+        Err(PyTypeError::new_err("TypeDecoder.bson_type must be overridden"))
+    }
+
+    fn transform_bson(&self, _value: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        Err(PyTypeError::new_err("TypeDecoder.transform_bson must be overridden"))
+    }
+}
+
+#[pyclass(module = "bson.codec_options", subclass)]
+pub struct TypeCodec;
+
+#[pymethods]
+impl TypeCodec {
+    #[new]
+    fn new() -> Self { Self }
+}
+
 #[pyclass(module = "bson.codec_options", frozen)]
-#[derive(Clone, Copy)]
+pub struct TypeRegistry {
+    pub codecs: Vec<Py<PyAny>>,
+    pub fallback: Option<Py<PyAny>>,
+    pub encoders: Vec<(Py<PyType>, Py<PyAny>)>,
+    pub decoders: Vec<(Py<PyType>, Py<PyAny>)>,
+    pub encoder_map: HashMap<usize, Py<PyAny>>,
+    pub decoder_map: HashMap<usize, Py<PyAny>>,
+}
+
+pub fn encode_custom<'py>(
+    py: Python<'py>, value: &Bound<'py, PyAny>, registry: Option<&Py<TypeRegistry>>,
+) -> PyResult<Option<Bound<'py, PyAny>>> {
+    let Some(registry) = registry else { return Ok(None) };
+    let registry = registry.bind(py).borrow();
+    if registry.encoders.is_empty() && registry.fallback.is_none() {
+        return Ok(None);
+    }
+    let type_id = value.get_type().as_ptr() as usize;
+    if let Some(transform) = registry.encoder_map.get(&type_id) {
+        return Ok(Some(transform.bind(py).call1((value,))?));
+    }
+    Ok(None)
+}
+
+pub fn encode_registered<'py>(
+    py: Python<'py>, value: &Bound<'py, PyAny>, registry: Option<&Py<TypeRegistry>>,
+) -> PyResult<Option<Bound<'py, PyAny>>> {
+    let Some(registry) = registry else { return Ok(None) };
+    let registry = registry.bind(py).borrow();
+    let type_id = value.get_type().as_ptr() as usize;
+    let Some(transform) = registry.encoder_map.get(&type_id) else {
+        return Ok(None);
+    };
+    Ok(Some(transform.bind(py).call1((value,))?))
+}
+
+pub fn decode_custom<'py>(
+    py: Python<'py>, value: Bound<'py, PyAny>, registry: Option<&Py<TypeRegistry>>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let Some(registry) = registry else { return Ok(value) };
+    let registry = registry.bind(py).borrow();
+    if registry.decoders.is_empty() {
+        return Ok(value);
+    }
+    let type_id = value.get_type().as_ptr() as usize;
+    if let Some(transform) = registry.decoder_map.get(&type_id) {
+        return transform.bind(py).call1((value,));
+    }
+    Ok(value)
+}
+
+#[pymethods]
+impl TypeRegistry {
+    #[new]
+    #[pyo3(signature = (type_codecs=None, fallback_encoder=None))]
+    fn new(
+        py: Python<'_>,
+        type_codecs: Option<&Bound<'_, PyAny>>,
+        fallback_encoder: Option<Py<PyAny>>,
+    ) -> PyResult<Self> {
+        let codecs = match type_codecs {
+            None => Vec::new(),
+            Some(value) => value
+                .try_iter()?
+                .map(|item| item.map(|item| item.unbind()))
+                .collect::<PyResult<Vec<_>>>()?,
+        };
+        if let Some(fallback) = &fallback_encoder
+            && !fallback.bind(py).is_callable()
+        {
+            return Err(PyTypeError::new_err(format!(
+                "fallback_encoder {fallback:?} is not a callable"
+            )));
+        }
+        let mut encoders = Vec::new();
+        let mut decoders = Vec::new();
+        let mut encoder_map = HashMap::new();
+        let mut decoder_map = HashMap::new();
+        for codec in &codecs {
+            let value = codec.bind(py);
+            let encoder = value.hasattr("python_type")? && value.hasattr("transform_python")?;
+            let decoder = value.hasattr("bson_type")? && value.hasattr("transform_bson")?;
+            if !encoder && !decoder {
+                return Err(PyTypeError::new_err(format!(
+                    "Expected an instance of TypeEncoder, TypeDecoder, or TypeCodec, got {value:?} instead"
+                )));
+            }
+            if encoder {
+                let python_type = value.getattr("python_type")?;
+                if !python_type.is_instance_of::<PyType>() {
+                    return Err(PyTypeError::new_err("python_type must be a type"));
+                }
+                if builtin_type(py, &python_type)? {
+                    return Err(PyTypeError::new_err(
+                        "TypeEncoders cannot change how built-in types are encoded",
+                    ));
+                }
+                let python_type = python_type.downcast::<PyType>()?.clone();
+                let transform = value.getattr("transform_python")?;
+                encoder_map.insert(python_type.as_ptr() as usize, transform.clone().unbind());
+                encoders.push((python_type.unbind(), transform.unbind()));
+            }
+            if decoder {
+                let bson_type = value.getattr("bson_type")?;
+                if !bson_type.is_instance_of::<PyType>() {
+                    return Err(PyTypeError::new_err("bson_type must be a type"));
+                }
+                let bson_type = bson_type.downcast::<PyType>()?.clone();
+                let transform = value.getattr("transform_bson")?;
+                decoder_map.insert(bson_type.as_ptr() as usize, transform.clone().unbind());
+                decoders.push((bson_type.unbind(), transform.unbind()));
+            }
+        }
+        Ok(Self {
+            codecs,
+            fallback: fallback_encoder,
+            encoders,
+            decoders,
+            encoder_map,
+            decoder_map,
+        })
+    }
+
+    #[getter]
+    fn codecs(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new(py, &self.codecs).unwrap().unbind()
+    }
+
+    #[getter]
+    fn fallback_encoder(&self, py: Python<'_>) -> Option<Py<PyAny>> {
+        self.fallback.as_ref().map(|value| value.clone_ref(py))
+    }
+
+    fn __repr__(&self) -> String {
+        "TypeRegistry(...)".to_owned()
+    }
+}
+
+fn builtin_type(py: Python<'_>, candidate: &Bound<'_, PyAny>) -> PyResult<bool> {
+    for name in ["bool", "bytes", "dict", "float", "int", "list", "str", "tuple"] {
+        let builtins = py.import("builtins")?;
+        let builtin = builtins.getattr(name)?;
+        if candidate.downcast::<PyType>()?.is_subclass(&builtin)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+#[pyclass(module = "bson.codec_options", frozen)]
 pub struct CodecOptions {
     pub uuid: UuidRepresentation,
     pub tz_aware: bool,
     pub datetime_conversion: DatetimeConversion,
+    pub type_registry: Option<Py<TypeRegistry>>,
+}
+
+impl Clone for CodecOptions {
+    fn clone(&self) -> Self {
+        Python::with_gil(|py| Self {
+            uuid: self.uuid,
+            tz_aware: self.tz_aware,
+            datetime_conversion: self.datetime_conversion,
+            type_registry: self.type_registry.as_ref().map(|value| value.clone_ref(py)),
+        })
+    }
 }
 
 impl Default for CodecOptions {
@@ -88,6 +294,7 @@ impl Default for CodecOptions {
             uuid: UuidRepresentation::Unspecified,
             tz_aware: false,
             datetime_conversion: DatetimeConversion::DATETIME,
+            type_registry: None,
         }
     }
 }
@@ -95,13 +302,17 @@ impl Default for CodecOptions {
 #[pymethods]
 impl CodecOptions {
     #[new]
-    #[pyo3(signature = (uuid_representation=0, *, tz_aware=false, datetime_conversion=1))]
-    fn new(uuid_representation: i64, tz_aware: bool, datetime_conversion: u8) -> PyResult<Self> {
+    #[pyo3(signature = (uuid_representation=0, *, tz_aware=false, datetime_conversion=1, type_registry=None))]
+    fn new(
+        _py: Python<'_>, uuid_representation: i64, tz_aware: bool,
+        datetime_conversion: u8, type_registry: Option<Py<TypeRegistry>>,
+    ) -> PyResult<Self> {
         let datetime_conversion = DatetimeConversion::parse(datetime_conversion)?;
         Ok(Self {
             uuid: UuidRepresentation::parse(uuid_representation)?,
             tz_aware,
             datetime_conversion,
+            type_registry,
         })
     }
 
@@ -120,17 +331,21 @@ impl CodecOptions {
         self.datetime_conversion as u8
     }
 
-    #[pyo3(signature = (*, uuid_representation=None, tz_aware=None, datetime_conversion=None))]
+    #[pyo3(signature = (*, uuid_representation=None, tz_aware=None, datetime_conversion=None, type_registry=None))]
     fn with_options(
         &self,
+        py: Python<'_>,
         uuid_representation: Option<i64>,
         tz_aware: Option<bool>,
         datetime_conversion: Option<u8>,
+        type_registry: Option<Py<TypeRegistry>>,
     ) -> PyResult<Self> {
         Self::new(
+            py,
             uuid_representation.unwrap_or(self.uuid as i64),
             tz_aware.unwrap_or(self.tz_aware),
             datetime_conversion.unwrap_or(self.datetime_conversion as u8),
+            type_registry.or_else(|| self.type_registry.as_ref().map(|r| r.clone_ref(py))),
         )
     }
 
@@ -147,7 +362,7 @@ pub fn resolve_all(options: Option<&Bound<'_, PyAny>>) -> PyResult<CodecOptions>
         None => Ok(CodecOptions::default()),
         Some(value) => value
             .extract::<PyRef<'_, CodecOptions>>()
-            .map(|value| *value)
+            .map(|value| CodecOptions { uuid: value.uuid, tz_aware: value.tz_aware, datetime_conversion: value.datetime_conversion, type_registry: value.type_registry.as_ref().map(|r| r.clone_ref(value.py())) })
             .map_err(|_| PyTypeError::new_err("codec_options must be an instance of CodecOptions")),
     }
 }

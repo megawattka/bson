@@ -4,7 +4,7 @@
 
 Encode documents, decode BSON streams, and work with rich BSON types through a 1:1-compatible `pymongo.bson` API. The project focuses on two goals: **speed** and drop-in API compatibility with `pymongo.bson`, while preserving strict BSON validation.
 
-> **Compatibility warning:** this package mimics the pymongo `bson` API, but it is not object-compatible with PyMongo. Its `ObjectId`, `Binary`, `Code`, `Decimal128`, `Timestamp`, `CodecOptions`, and other values are distinct types. Do not mix objects from both packages together.
+> **Compatibility warning:** using this package together with PyMongo's BSON implementation is **not recommended**. Both packages use the `bson` import namespace, so installing them in the same environment can cause import conflicts. Their `ObjectId`, `Binary`, `Code`, `Decimal128`, `Timestamp`, `CodecOptions`, and other values are distinct types and must not be mixed.
 
 ## ✨ Highlights
 
@@ -16,6 +16,7 @@ Encode documents, decode BSON streams, and work with rich BSON types through a 1
 - **BSON types:** `ObjectId`, `Binary`, `Int64`, `DBRef`, `Decimal128`, and `Timestamp`.
 - **Beyond scalars:** `Regex`, `Code`, `MinKey`, `MaxKey`, dates, and `DatetimeMS`.
 - **Explicit UUID handling:** standard and legacy representations.
+- **Custom type codecs:** implemented `TypeEncoder`, `TypeDecoder`, `TypeCodec`, and `TypeRegistry`, including fallback encoding.
 - **Built for confidence:** Python type annotations and differential tests against an independent PyMongo BSON package.
 
 ## 🚀 Build from source
@@ -90,7 +91,7 @@ assert restored["price"] == document["price"]
 
 ### Compatibility warning
 
-The API is intentionally modeled 1:1 after `pymongo.bson`, but the implementations cannot be used together without a bridge. Direct `isinstance`, equality, subclassing, and type-registration behavior across the two packages is not guaranteed. Convert values explicitly whenever both packages are present in one application.
+The API is modeled after PyMongo's `bson`, but this is a standalone implementation, not a replacement BSON backend for the PyMongo driver. **Using the two implementations together is not recommended**, including installing them in the same environment or mixing their objects and type registries. Keep them in separate environments; exchange BSON bytes rather than package-specific Python objects.
 
 | Function | Result |
 | :--- | :--- |
@@ -105,6 +106,88 @@ The API is intentionally modeled 1:1 after `pymongo.bson`, but the implementatio
 - `DatetimeConversion` modes and `DatetimeMS` handle dates beyond Python's `datetime` range.
 - Invalid documents raise `InvalidDocument`; malformed BSON raises `InvalidBSON`.
 - Nesting is limited to 100 containers. Size is constrained by the BSON format rather than MongoDB's server-side 16 MiB limit.
+
+### Custom type codecs
+
+Custom codecs and type registries are implemented. Import them from `bson.codec_options` (or directly from `bson`):
+
+| Class | Implement in a subclass |
+| :--- | :--- |
+| `TypeEncoder` | `python_type` property and `transform_python(value)` method |
+| `TypeDecoder` | `bson_type` property and `transform_bson(value)` method |
+| `TypeCodec` | Both pairs above, for bidirectional conversion |
+| `TypeRegistry` | No subclass needed; pass codec instances and an optional `fallback_encoder` |
+
+`python_type` identifies the custom Python type to encode. `bson_type` is the **Python type produced by BSON decoding**, not a numeric BSON type code. Register codec **instances**, then pass the registry through `CodecOptions` to `encode`, `decode`, or `decode_all`.
+
+For example, store `decimal.Decimal` as a BSON string and restore it on decoding:
+
+```python
+from decimal import Decimal
+from bson import decode, decode_all, encode
+from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
+
+
+class DecimalCodec(TypeCodec):
+    @property
+    def python_type(self) -> type[Decimal]:
+        return Decimal
+
+    @property
+    def bson_type(self) -> type[str]:
+        return str
+
+    def transform_python(self, _value: object) -> str:
+        assert isinstance(_value, Decimal)
+        return str(_value)
+
+    def transform_bson(self, _value: object) -> Decimal:
+        assert isinstance(_value, str)
+        return Decimal(_value)
+
+
+registry = TypeRegistry([DecimalCodec()])
+options = CodecOptions(type_registry=registry)
+document = {"price": Decimal("19.9500"), "values": [Decimal("0.125")]}
+data = encode(document, codec_options=options)
+
+assert decode(data) == {"price": "19.9500", "values": ["0.125"]}
+assert decode(data, codec_options=options) == document
+assert decode_all(data + data, codec_options=options) == [document, document]
+```
+
+**Decoder scope:** this example converts every decoded string value to `Decimal`, including values in nested documents and arrays. It is suitable only when all string values are decimal representations; other strings will raise a conversion error. Codec selection is type-based, not field-name-based. For mixed documents, choose a dedicated BSON representation such as `Decimal128` and use `bson_type = Decimal128` with `to_decimal()` in your decoder instead.
+
+Registry behavior:
+
+- Matching uses exact Python types, not subclasses. Nested document and array values also use the registry.
+- Encoders cannot override `bool`, `bytes`, `dict`, `float`, `int`, `list`, `str`, or `tuple`, or subclasses of these built-in types.
+- When multiple codecs target the same type, the last registered transformation for that direction wins.
+- `registry.codecs` returns a new list of the registered codec instances; changing that list does not change the registry.
+- Pass the options on every call that needs custom conversion. Without them, decoding returns the ordinary BSON Python types and unsupported custom values cannot be encoded.
+
+### Fallback encoding
+
+`TypeRegistry(fallback_encoder=callable)` handles otherwise unsupported Python values without requiring a separate encoder for each type. The callable must return a BSON-encodable replacement; it does not provide reverse conversion:
+
+```python
+from decimal import Decimal
+from bson import decode, encode
+from bson.codec_options import CodecOptions, TypeRegistry
+
+
+def fallback_encoder(value: object) -> str:
+    if isinstance(value, Decimal):
+        return str(value)
+    raise TypeError(f"Unsupported value type: {type(value).__name__}")
+
+
+options = CodecOptions(
+    type_registry=TypeRegistry(fallback_encoder=fallback_encoder),
+)
+data = encode({"price": Decimal("19.95")}, codec_options=options)
+assert decode(data) == {"price": "19.95"}
+```
 
 ## 📊 Benchmarks
 
@@ -200,12 +283,12 @@ python scripts/extract_pymongo_bson.py --version 4.19.0
 python -m pytest tests -q
 ```
 
-The setup script downloads PyMongo sources from PyPI, verifies SHA256, renames the BSON package, and builds its C extension. It requires network access and a system C/C++ toolchain. Without `_p_bson`, differential tests may be skipped; benchmarks require it.
+The setup script downloads PyMongo sources from PyPI, verifies SHA256, renames the BSON package to `_p_bson`, and builds its C extension. This isolated reference is only for tests and benchmarks; it does not install PyMongo alongside this package under the shared `bson` namespace. It requires network access and a system C/C++ toolchain. Without `_p_bson`, differential tests may be skipped; benchmarks require it.
 
 ## 📝 TODO
 
-The following PyMongo API extensions are not implemented yet:
+Implementation status:
 
 - [ ] Custom document classes.
-- [ ] Type registries and custom type codecs.
+- [x] Type registries and custom type codecs.
 - [ ] Arbitrary `tzinfo` objects in `CodecOptions`.

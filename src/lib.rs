@@ -24,6 +24,10 @@ fn _bson(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(decoder::decode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode_all, module)?)?;
     module.add_class::<codec_options::CodecOptions>()?;
+    module.add_class::<codec_options::TypeEncoder>()?;
+    module.add_class::<codec_options::TypeDecoder>()?;
+    module.add_class::<codec_options::TypeCodec>()?;
+    module.add_class::<codec_options::TypeRegistry>()?;
     module.add("BSONError", module.py().get_type::<errors::BSONError>())?;
     module.add("InvalidBSON", module.py().get_type::<errors::InvalidBSON>())?;
     module.add(
@@ -86,6 +90,10 @@ fn _bson(module: &Bound<'_, PyModule>) -> PyResult<()> {
                 "CodecOptions",
                 "DEFAULT_CODEC_OPTIONS",
                 "DatetimeConversion",
+                "TypeEncoder",
+                "TypeDecoder",
+                "TypeCodec",
+                "TypeRegistry",
             ][..],
         ),
         (

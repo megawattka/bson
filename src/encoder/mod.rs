@@ -124,6 +124,7 @@ pub(super) struct Encoder<'py> {
     stack: Vec<Frame<'py>>,
     check_keys: bool,
     uuid: UuidRepresentation,
+    registry: Option<Py<crate::codec_options::TypeRegistry>>,
 }
 
 impl<'py> Encoder<'py> {
@@ -264,7 +265,7 @@ pub fn encode<'py>(
     check_keys: bool,
     codec_options: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<Bound<'py, PyBytes>> {
-    let uuid = codec_options::resolve_all(codec_options)?.uuid;
+    let options = codec_options::resolve_all(codec_options)?;
     let dict = document
         .downcast::<PyDict>()
         .map_err(|_| PyTypeError::new_err("document must be a dict with string keys"))?;
@@ -275,7 +276,8 @@ pub fn encode<'py>(
         writer: Writer::new(),
         stack: Vec::new(),
         check_keys,
-        uuid,
+        uuid: options.uuid,
+        registry: options.type_registry,
     };
     let bytes = encoder.run(dict.clone())?;
     Ok(PyBytes::new(document.py(), &bytes))

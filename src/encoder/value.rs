@@ -15,6 +15,11 @@ use crate::{
 
 impl<'py> Encoder<'py> {
     pub(super) fn value(&mut self, name: &[u8], value: Bound<'py, PyAny>) -> PyResult<()> {
+        if let Some(transformed) = crate::codec_options::encode_registered(
+            value.py(), &value, self.registry.as_ref(),
+        )? {
+            return self.value(name, transformed);
+        }
         // Builtins and their subclasses share handlers. Only Int64 and Binary
         // need special handling within their respective builtin families.
         if value.is_none() {
@@ -154,6 +159,18 @@ impl<'py> Encoder<'py> {
             let bytes = binary::uuid_bytes(&value, self.uuid)?;
             self.binary(name, &bytes, self.uuid.subtype())?;
         } else {
+            if let Some(transformed) = crate::codec_options::encode_custom(
+                value.py(), &value, self.registry.as_ref(),
+            )? {
+                return self.value(name, transformed);
+            }
+            if let Some(registry) = self.registry.as_ref() {
+                let registry = registry.bind(value.py()).borrow();
+                if let Some(fallback) = &registry.fallback {
+                    let transformed = fallback.bind(value.py()).call1((value,))?;
+                    return self.value(name, transformed);
+                }
+            }
             return Err(invalid(format!(
                 "cannot encode object: {}, of type: {}",
                 value.repr()?,
