@@ -18,7 +18,7 @@ mod regex;
 mod timestamp;
 
 /// BSON codec implemented in Rust, with no Python implementation files.
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _bson(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(encoder::encode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode, module)?)?;

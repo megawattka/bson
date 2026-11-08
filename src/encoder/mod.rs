@@ -221,7 +221,9 @@ fn binary_document<'py>(
     if dict.len() != 1 {
         return Ok(None);
     }
-    let (key, value) = dict.iter().next().expect("one field");
+    let Some((key, value)) = dict.iter().next() else {
+        return Ok(None);
+    };
     let Ok(bytes) = value.downcast::<PyBytes>() else {
         return Ok(None);
     };

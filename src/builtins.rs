@@ -1,4 +1,4 @@
-//! ABI3 builtin subclasses with standard CPython method descriptors.
+//! Builtin subclasses with standard CPython method descriptors.
 //! PyO3 cannot directly extend the variable-sized int/bytes layouts.
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::ffi;
@@ -20,7 +20,9 @@ macro_rules! definition {
                 args: *mut ffi::PyObject,
                 kwargs: *mut ffi::PyObject,
             ) -> *mut ffi::PyObject {
-                // SAFETY: CPython holds the GIL; arguments match METH_VARARGS |
+                // SAFETY: CPython has attached this thread to the interpreter;
+                // a GIL is not required on free-threaded builds.
+                // Arguments match METH_VARARGS |
                 // METH_KEYWORDS. The descriptor validates the receiver's type.
                 let py = unsafe { Python::assume_gil_acquired() };
                 let result = catch_unwind(AssertUnwindSafe(|| unsafe {

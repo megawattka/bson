@@ -21,6 +21,30 @@ Encode documents, decode BSON streams, and work with rich BSON types through a 1
 
 ## 🚀 Build from source
 
+### Python ABI and free-threaded builds
+
+The extension uses the version-specific CPython ABI, not `abi3`. Build and
+install a separate wheel for each Python version, platform, and ABI. Standard
+CPython and free-threaded CPython require different wheels (for example,
+`cp313-cp313` versus `cp313-cp313t`). Existing `abi3` wheels are not converted.
+
+Free-threaded CPython 3.13t is supported: importing `bson` does not enable the
+GIL. Build using that interpreter, for example:
+
+```sh
+uv venv --python 3.13t .venv
+uv sync --python 3.13t --group dev
+uv run maturin develop --release
+uv run python -c "import sys, bson; assert not sys._is_gil_enabled()"
+```
+
+Calls can run concurrently without a module-wide lock. Callers must not mutate
+documents, buffers, or codec state while another thread is using them. Custom
+codecs and timezone callbacks must themselves be thread-safe when shared.
+This does not release the GIL on conventional CPython builds, and does not
+add subinterpreter support (a separate PyO3 limitation). CI covers Python 3.12,
+3.13, and 3.13t; wheel builds target each interpreter separately.
+
 Requirements: **Python 3.12+**, Rust/Cargo, and a system C/C++ toolchain. On Windows, install Visual Studio Build Tools with C++ support.
 
 From the repository root:
