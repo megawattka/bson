@@ -213,7 +213,7 @@ fn field_name<'a>(key: &'a Bound<'_, PyAny>, check_keys: bool) -> PyResult<&'a [
     Ok(name.as_bytes())
 }
 
-/// Avoid the intermediate Vec and its payload copy for large binary envelopes.
+/// Avoid the intermediate Vec and its payload copy for large plain-bytes envelopes.
 fn binary_document<'py>(
     dict: &Bound<'py, PyDict>,
     check_keys: bool,
@@ -224,6 +224,13 @@ fn binary_document<'py>(
     let Some((key, value)) = dict.iter().next() else {
         return Ok(None);
     };
+    // Keep bytes subclasses (including Binary) on the general Writer path.
+    // Direct writes into a Python allocation are disproportionately slow for
+    // these payloads on Windows free-threaded CPython. The Rust buffer avoids
+    // that copy-path regression, while exact bytes retain the one-copy path.
+    if !value.is_exact_instance_of::<PyBytes>() {
+        return Ok(None);
+    }
     let Ok(bytes) = value.downcast::<PyBytes>() else {
         return Ok(None);
     };
@@ -232,12 +239,9 @@ fn binary_document<'py>(
         return Ok(None);
     }
     let name = field_name(&key, check_keys)?;
-    let subtype = value::binary_subtype(&value)?;
-    let extra = if subtype == 2 { 4 } else { 0 };
     let size = name
         .len()
         .checked_add(12)
-        .and_then(|size| size.checked_add(extra))
         .and_then(|size| size.checked_add(payload.len()))
         .filter(|size| *size <= i32::MAX as usize)
         .ok_or(WriteError::TooLarge)?;
@@ -247,12 +251,9 @@ fn binary_document<'py>(
         output[5..5 + name.len()].copy_from_slice(name);
         output[5 + name.len()] = 0;
         let offset = 6 + name.len();
-        output[offset..offset + 4].copy_from_slice(&((payload.len() + extra) as i32).to_le_bytes());
-        output[offset + 4] = subtype;
-        let start = offset + 5 + extra;
-        if subtype == 2 {
-            output[offset + 5..start].copy_from_slice(&(payload.len() as i32).to_le_bytes());
-        }
+        output[offset..offset + 4].copy_from_slice(&(payload.len() as i32).to_le_bytes());
+        output[offset + 4] = 0;
+        let start = offset + 5;
         output[start..start + payload.len()].copy_from_slice(payload);
         output[size - 1] = 0;
         Ok(())

@@ -1,4 +1,7 @@
+import os
+import statistics
 import struct
+import timeit
 
 import pytest
 
@@ -63,6 +66,57 @@ def test_general_encoder_paths():
         {"payload": payload, "tail": 42, "_id": 1},
     ):
         assert bson.decode(bson.encode(document)) == document
+
+
+@pytest.mark.parametrize("subtype", [0, 1, 2, 128])
+def test_large_binary_matches_reference_in_all_envelopes(subtype: int):
+    reference = pytest.importorskip("_p_bson")
+    payload = bytes(range(256)) * 256
+    value = bson.Binary(payload, subtype)
+    reference_value = reference.Binary(payload, subtype)
+    for wrap in (
+        lambda item: {"payload": item},
+        lambda item: {"child": {"payload": item}},
+        lambda item: {"payload": item, "tail": 42},
+        lambda item: {"items": [item, item]},
+    ):
+        actual = bson.encode(wrap(value))
+        assert actual == reference.encode(wrap(reference_value))
+        assert bson.decode(actual) == wrap(value if subtype else payload)
+
+
+@pytest.mark.skipif(
+    os.environ.get("BSON_PERFORMANCE_TESTS") != "1",
+    reason="Opt-in timing regression: set BSON_PERFORMANCE_TESTS=1",
+)
+def test_large_binary_has_no_several_fold_copy_penalty():
+    payload = b"x" * 65_536
+    plain_document = {"payload": payload}
+    plain_timer = timeit.Timer(lambda: bson.encode(plain_document))
+    for subtype in (0, 1, 2, 128):
+        document = {"payload": bson.Binary(payload, subtype)}
+        binary_timer = timeit.Timer(
+            lambda document=document: bson.encode(document),
+        )
+        plain_timer.timeit(number=1000)
+        binary_timer.timeit(number=1000)
+        plain_samples = []
+        binary_samples = []
+        for index in range(7):
+            order = (
+                [(plain_timer, plain_samples), (binary_timer, binary_samples)]
+                if index % 2 == 0
+                else [
+                    (binary_timer, binary_samples),
+                    (plain_timer, plain_samples),
+                ]
+            )
+            for timer, samples in order:
+                samples.append(timer.timeit(number=2000))
+        # A broad guard against the original ~7x slowdown, not a speed claim.
+        assert statistics.median(binary_samples) < (
+            3 * statistics.median(plain_samples)
+        ), subtype
 
 
 def test_key_and_option_validation():

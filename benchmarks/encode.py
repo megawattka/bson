@@ -44,7 +44,9 @@ def documents() -> dict[str, Document]:
         "binary_4k": {"payload": b"x" * 4096},
         "binary_pair": {"a": b"x" * 65_536, "b": b"y" * 65_536},
         "binary_nested": {"child": {"payload": b"x" * 65_536}},
+        "binary_sub1": {"payload": bson.Binary(b"x" * 65_536, 1)},
         "binary_old": {"payload": bson.Binary(b"x" * 65_536, 2)},
+        "binary_user": {"payload": bson.Binary(b"x" * 65_536, 128)},
         "unicode": {"text": "привет 🦀\0" * 100, "empty": ""},
     }
 
