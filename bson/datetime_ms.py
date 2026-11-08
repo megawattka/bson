@@ -20,6 +20,10 @@ if TYPE_CHECKING:
         selected conversion policy and Python's supported date range.
         """
 
+        def __init__(self, value: int | datetime) -> None:
+            """Store milliseconds or convert a datetime to UTC milliseconds."""
+            ...
+
         def __int__(self) -> int: ...
         def __hash__(self) -> int: ...
         def __eq__(self, other: object) -> bool: ...
@@ -40,7 +44,8 @@ if TYPE_CHECKING:
             boundary, ``DATETIME_MS`` returns this value unchanged, and
             ``DATETIME_AUTO`` returns ``DatetimeMS`` only when out of range.
             The ``tz_aware`` option controls whether a returned datetime is
-            timezone-aware.
+            timezone-aware; ``tzinfo`` selects the target timezone. Clamp and
+            auto policies account for its offset at the datetime boundaries.
 
             Args:
                 codec_options: Options controlling date conversion and

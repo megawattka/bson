@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from abc import ABC, abstractmethod
     from enum import IntEnum
+    import datetime as dt
     from typing import Any
 
     class TypeEncoder(ABC):
@@ -194,6 +195,8 @@ if TYPE_CHECKING:
                 Python's ``datetime`` range. Defaults to
                 :attr:`DatetimeConversion.DATETIME`.
             type_registry: Custom codecs and fallback encoder, or ``None``.
+            tzinfo: Target timezone for decoded datetimes. Requires
+                ``tz_aware=True``; ``None`` uses UTC for aware decoding.
 
         Raises:
             TypeError: An option has an invalid type.
@@ -207,6 +210,7 @@ if TYPE_CHECKING:
             tz_aware: bool = False,
             datetime_conversion: int = DatetimeConversion.DATETIME,
             type_registry: TypeRegistry | None = None,
+            tzinfo: dt.tzinfo | None = None,
         ) -> None:
             """Initialize immutable BSON codec settings.
 
@@ -218,6 +222,7 @@ if TYPE_CHECKING:
                 datetime_conversion: Datetime conversion policy. Defaults to
                     ``1`` (:attr:`DatetimeConversion.DATETIME`).
                 type_registry: Custom codecs and fallback encoder, or ``None``.
+                tzinfo: Target timezone. Requires ``tz_aware=True``.
 
             Raises:
                 TypeError: An option has an invalid type.
@@ -236,6 +241,11 @@ if TYPE_CHECKING:
             ...
 
         @property
+        def tzinfo(self) -> dt.tzinfo | None:
+            """Target timezone for aware decoding, or ``None`` for UTC."""
+            ...
+
+        @property
         def datetime_conversion(self) -> int:
             """Datetime conversion policy used when decoding BSON dates."""
             ...
@@ -247,6 +257,7 @@ if TYPE_CHECKING:
             tz_aware: bool | None = None,
             datetime_conversion: int | None = None,
             type_registry: TypeRegistry | None = None,
+            tzinfo: dt.tzinfo | None = None,
         ) -> CodecOptions:
             """Return a new instance with selected options replaced.
 
@@ -259,6 +270,7 @@ if TYPE_CHECKING:
                     if given.
                 type_registry: Replacement registry, if given. ``None`` keeps
                     the current registry.
+                tzinfo: Replacement timezone. ``None`` keeps the current zone.
 
             Returns:
                 A new :class:`CodecOptions` with the selected settings.

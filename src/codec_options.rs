@@ -273,6 +273,7 @@ fn builtin_type(py: Python<'_>, candidate: &Bound<'_, PyAny>) -> PyResult<bool> 
 pub struct CodecOptions {
     pub uuid: UuidRepresentation,
     pub tz_aware: bool,
+    pub tzinfo: Option<Py<PyAny>>,
     pub datetime_conversion: DatetimeConversion,
     pub type_registry: Option<Py<TypeRegistry>>,
 }
@@ -282,6 +283,7 @@ impl Clone for CodecOptions {
         Python::with_gil(|py| Self {
             uuid: self.uuid,
             tz_aware: self.tz_aware,
+            tzinfo: self.tzinfo.as_ref().map(|value| value.clone_ref(py)),
             datetime_conversion: self.datetime_conversion,
             type_registry: self.type_registry.as_ref().map(|value| value.clone_ref(py)),
         })
@@ -293,6 +295,7 @@ impl Default for CodecOptions {
         Self {
             uuid: UuidRepresentation::Unspecified,
             tz_aware: false,
+            tzinfo: None,
             datetime_conversion: DatetimeConversion::DATETIME,
             type_registry: None,
         }
@@ -302,15 +305,25 @@ impl Default for CodecOptions {
 #[pymethods]
 impl CodecOptions {
     #[new]
-    #[pyo3(signature = (uuid_representation=0, *, tz_aware=false, datetime_conversion=1, type_registry=None))]
+    #[pyo3(signature = (uuid_representation=0, *, tz_aware=false, datetime_conversion=1, type_registry=None, tzinfo=None))]
     fn new(
-        _py: Python<'_>, uuid_representation: i64, tz_aware: bool,
+        py: Python<'_>, uuid_representation: i64, tz_aware: bool,
         datetime_conversion: u8, type_registry: Option<Py<TypeRegistry>>,
+        tzinfo: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
+        if let Some(zone) = &tzinfo {
+            if !zone.bind(py).is_instance(&py.import("datetime")?.getattr("tzinfo")?)? {
+                return Err(PyTypeError::new_err("tzinfo must be an instance of datetime.tzinfo"));
+            }
+            if !tz_aware {
+                return Err(PyValueError::new_err("cannot specify tzinfo without also setting tz_aware=True"));
+            }
+        }
         let datetime_conversion = DatetimeConversion::parse(datetime_conversion)?;
         Ok(Self {
             uuid: UuidRepresentation::parse(uuid_representation)?,
             tz_aware,
+            tzinfo,
             datetime_conversion,
             type_registry,
         })
@@ -327,11 +340,16 @@ impl CodecOptions {
     }
 
     #[getter]
+    fn tzinfo(&self, py: Python<'_>) -> Option<Py<PyAny>> {
+        self.tzinfo.as_ref().map(|zone| zone.clone_ref(py))
+    }
+
+    #[getter]
     fn datetime_conversion(&self) -> u8 {
         self.datetime_conversion as u8
     }
 
-    #[pyo3(signature = (*, uuid_representation=None, tz_aware=None, datetime_conversion=None, type_registry=None))]
+    #[pyo3(signature = (*, uuid_representation=None, tz_aware=None, datetime_conversion=None, type_registry=None, tzinfo=None))]
     fn with_options(
         &self,
         py: Python<'_>,
@@ -339,6 +357,7 @@ impl CodecOptions {
         tz_aware: Option<bool>,
         datetime_conversion: Option<u8>,
         type_registry: Option<Py<TypeRegistry>>,
+        tzinfo: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         Self::new(
             py,
@@ -346,14 +365,19 @@ impl CodecOptions {
             tz_aware.unwrap_or(self.tz_aware),
             datetime_conversion.unwrap_or(self.datetime_conversion as u8),
             type_registry.or_else(|| self.type_registry.as_ref().map(|r| r.clone_ref(py))),
+            tzinfo.or_else(|| self.tzinfo.as_ref().map(|zone| zone.clone_ref(py))),
         )
     }
 
-    fn __repr__(&self) -> String {
-        format!(
-            "CodecOptions(uuid_representation={}, tz_aware={}, datetime_conversion={})",
-            self.uuid as u8, self.tz_aware, self.datetime_conversion as u8
-        )
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        let zone = match &self.tzinfo {
+            Some(zone) => zone.bind(py).repr()?.to_string(),
+            None => "None".to_owned(),
+        };
+        Ok(format!(
+            "CodecOptions(uuid_representation={}, tz_aware={}, datetime_conversion={}, tzinfo={})",
+            self.uuid as u8, self.tz_aware, self.datetime_conversion as u8, zone
+        ))
     }
 }
 
@@ -362,7 +386,7 @@ pub fn resolve_all(options: Option<&Bound<'_, PyAny>>) -> PyResult<CodecOptions>
         None => Ok(CodecOptions::default()),
         Some(value) => value
             .extract::<PyRef<'_, CodecOptions>>()
-            .map(|value| CodecOptions { uuid: value.uuid, tz_aware: value.tz_aware, datetime_conversion: value.datetime_conversion, type_registry: value.type_registry.as_ref().map(|r| r.clone_ref(value.py())) })
+            .map(|value| (*value).clone())
             .map_err(|_| PyTypeError::new_err("codec_options must be an instance of CodecOptions")),
     }
 }

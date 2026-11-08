@@ -1,6 +1,6 @@
 # 🦀 BSON — Rust performance and Python simplicity.
 
-**A fast, native BSON codec for Python 3.12+, powered by Rust and PyO3, with a 1:1-compatible `pymongo.bson` API.**
+**A fast, native BSON codec for Python 3.12+, powered by Rust and PyO3, with a 1:1-compatible pymongo `bson` API.**
 
 Encode documents, decode BSON streams, and work with rich BSON types through a 1:1-compatible pymongo `bson` API. The project focuses on two goals: **speed** and drop-in API compatibility with pymongo `bson`, while preserving strict BSON validation.
 
@@ -104,6 +104,7 @@ The API is modeled after PyMongo's `bson`, but this is a standalone implementati
 - Python integers use int32 or int64 as appropriate. Values outside the signed 64-bit range raise `OverflowError`.
 - BSON int64 decodes to `Int64`, arrays to `list`, and binary subtype 0 to `bytes`.
 - Dates decode without `tzinfo` by default. Use `CodecOptions(tz_aware=True)` for UTC-aware dates.
+- Set `CodecOptions(tz_aware=True, tzinfo=zone)` to decode dates in a specific timezone, including custom `datetime.tzinfo` subclasses and `zoneinfo.ZoneInfo`.
 - `DatetimeConversion` modes and `DatetimeMS` handle dates beyond Python's `datetime` range.
 - Invalid documents raise `InvalidDocument`; malformed BSON raises `InvalidBSON`.
 - Nesting is limited to 100 containers. Size is constrained by the BSON format rather than MongoDB's server-side 16 MiB limit.
@@ -197,6 +198,35 @@ options = CodecOptions(
 data = encode({"price": Decimal("19.95")}, codec_options=options)
 assert decode(data) == {"price": "19.95"}
 ```
+
+### Timezones and datetime conversion
+
+```python
+from datetime import UTC, datetime, timedelta, timezone
+from bson import decode, decode_all, encode
+from bson.codec_options import CodecOptions
+
+zone = timezone(timedelta(hours=5, minutes=45))
+options = CodecOptions(tz_aware=True, tzinfo=zone)
+original = datetime(2024, 6, 1, 12, 30, tzinfo=UTC)
+data = encode({"created": original})
+restored = decode(data, codec_options=options)["created"]
+
+assert restored == original
+assert restored.hour == 18
+assert restored.minute == 15
+assert restored.tzinfo is zone
+assert decode_all(data * 2, codec_options=options) == [
+    {"created": restored}, {"created": restored},
+]
+```
+
+- `tzinfo` must be a `datetime.tzinfo` instance and requires `tz_aware=True`; invalid types raise `TypeError`, and using it with naive decoding raises `ValueError`.
+- Without a custom zone, `tz_aware=True` returns UTC-aware datetimes. The default `tz_aware=False` returns naive UTC datetimes.
+- Conversion uses `datetime.astimezone()`, respecting custom `fromutc()` implementations, DST transitions, and `fold`. For example, use `ZoneInfo("America/New_York")` from `zoneinfo`; this requires an available IANA timezone database (system data or the optional `tzdata` package).
+- BSON stores UTC milliseconds, not timezone names or offsets. The decoding zone does not change the encoded instant; aware input datetimes use their own UTC offset, and naive inputs are treated as UTC.
+- `DATETIME` raises `InvalidBSON` when the UTC date or converted local date is out of range. `DATETIME_CLAMP` clamps to bounds safe for both UTC and the target zone; `DATETIME_AUTO` returns `DatetimeMS` outside those bounds. `DATETIME_MS` always returns raw milliseconds without timezone conversion.
+- The same options apply to `DatetimeMS.as_datetime(options)`, nested values, and `decode_all`. `options.with_options(tzinfo=other_zone)` replaces the zone; `None` retains the current zone, as with the other optional replacements. Create fresh `CodecOptions` to reset the zone to its default.
 
 ## 📊 Benchmarks
 
@@ -300,4 +330,4 @@ Implementation status:
 
 - [ ] Custom document classes.
 - [x] Type registries and custom type codecs.
-- [ ] Arbitrary `tzinfo` objects in `CodecOptions`.
+- [x] Arbitrary `tzinfo` objects in `CodecOptions`.

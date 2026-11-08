@@ -47,15 +47,38 @@ pub fn from_millis(
     options: CodecOptions,
 ) -> PyResult<Bound<'_, PyAny>> {
     let mode = options.datetime_conversion;
+    let types = types(py)?;
+    let mut min_ms = MIN_MS;
+    let mut max_ms = MAX_MS;
+    if matches!(mode, DatetimeConversion::DATETIME_CLAMP | DatetimeConversion::DATETIME_AUTO) {
+        if let Some(zone) = &options.tzinfo {
+            // Match PyMongo's UTC bounds, tightened to keep local dates in range.
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("tzinfo", types.utc.bind(py))?;
+            for (name, bound, lower) in [("min", MIN_MS, true), ("max", MAX_MS, false)] {
+                let date = types.datetime.bind(py).getattr(name)?
+                    .call_method("replace", (), Some(&kwargs))?;
+                let delta = zone.bind(py).call_method1("utcoffset", (date,))?;
+                let offset_ms = if delta.is_none() { 0 } else {
+                    let days: i64 = delta.getattr("days")?.extract()?;
+                    let seconds: i64 = delta.getattr("seconds")?.extract()?;
+                    let micros: i64 = delta.getattr("microseconds")?.extract()?;
+                    (days * 86400 + seconds) * 1000 + micros / 1000
+                };
+                if lower { min_ms = MIN_MS.max(bound - offset_ms); }
+                else { max_ms = MAX_MS.min(bound - offset_ms); }
+            }
+        }
+    }
     if mode == DatetimeConversion::DATETIME_MS
-        || (mode == DatetimeConversion::DATETIME_AUTO && !(MIN_MS..=MAX_MS).contains(&millis))
+        || (mode == DatetimeConversion::DATETIME_AUTO && !(min_ms..=max_ms).contains(&millis))
     {
         return Ok(Py::new(py, DatetimeMS { value: millis })?
             .into_bound(py)
             .into_any());
     }
     let millis = if mode == DatetimeConversion::DATETIME_CLAMP {
-        millis.clamp(MIN_MS, MAX_MS)
+        millis.clamp(min_ms, max_ms)
     } else {
         millis
     };
@@ -64,7 +87,6 @@ pub fn from_millis(
             "datetime value out of range; use DatetimeConversion.DATETIME_AUTO or DATETIME_MS",
         ));
     }
-    let types = types(py)?;
     let delta = types.timedelta.bind(py).call1((
         millis.div_euclid(86_400_000),
         millis.rem_euclid(86_400_000) / 1000,
@@ -75,7 +97,15 @@ pub fn from_millis(
     } else {
         &types.epoch
     };
-    epoch.bind(py).call_method1("__add__", (delta,))
+    let date = epoch.bind(py).call_method1("__add__", (delta,))?;
+    match &options.tzinfo {
+        Some(zone) => date.call_method1("astimezone", (zone.bind(py),)).map_err(|error| {
+            if error.is_instance_of::<PyOverflowError>(py) {
+                crate::errors::InvalidBSON::new_err("datetime value out of range after timezone conversion")
+            } else { error }
+        }),
+        None => Ok(date),
+    }
 }
 
 #[pyclass(module = "bson.datetime_ms", frozen)]
