@@ -33,6 +33,7 @@ jobs:
           run: |
               python3 -m pip install --upgrade pip
               python3 -m pip install "maturin>=1.15,<2" "pytest>=9.2" tzdata
+              python3 -m pip install "pydantic>=2.14.3"
               python3 -m maturin build --release --out dist
               python3 -m pip install --no-deps dist/*.whl
       -   name: Build independent PyMongo reference
