@@ -37,7 +37,7 @@ impl Code {
             )
         } else {
             (
-                code.downcast::<PyString>()
+                code.cast::<PyString>()
                     .map_err(|_| PyTypeError::new_err("code must be an instance of str or Code"))?
                     .clone()
                     .unbind(),
@@ -48,12 +48,12 @@ impl Code {
             if !scope.is_instance(&py.import("collections.abc")?.getattr("Mapping")?)? {
                 return Err(PyTypeError::new_err("scope must be a mapping"));
             }
-            let scope = if let Ok(dict) = scope.downcast::<PyDict>() {
+            let scope = if let Ok(dict) = scope.cast::<PyDict>() {
                 dict.clone()
             } else {
                 py.get_type::<PyDict>()
                     .call1((scope,))?
-                    .downcast_into::<PyDict>()?
+                    .cast_into::<PyDict>()?
             };
             if let Some(existing) = &result {
                 existing.bind(py).call_method1("update", (scope,))?;
@@ -119,7 +119,7 @@ impl Code {
 
 pub fn state<'py>(value: &Bound<'py, PyAny>) -> PyResult<Option<Bound<'py, Code>>> {
     if value.is_instance(crate::bridge::code(value.py())?.as_any())? {
-        Ok(Some(value.getattr("_state")?.downcast_into::<Code>()?))
+        Ok(Some(value.getattr("_state")?.cast_into::<Code>()?))
     } else {
         Ok(None)
     }
@@ -217,7 +217,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let cls = py
         .get_type::<PyType>()
         .call1(("Code", (py.get_type::<PyString>(),), attrs))?
-        .downcast_into::<PyType>()?;
+        .cast_into::<PyType>()?;
     crate::builtins::install_code(&cls)?;
     crate::bridge::register_code(&cls)?;
     module.add("Code", cls)

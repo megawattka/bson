@@ -24,12 +24,12 @@ macro_rules! definition {
                 // a GIL is not required on free-threaded builds.
                 // Arguments match METH_VARARGS |
                 // METH_KEYWORDS. The descriptor validates the receiver's type.
-                let py = unsafe { Python::assume_gil_acquired() };
+                let py = unsafe { Python::assume_attached() };
                 let result = catch_unwind(AssertUnwindSafe(|| unsafe {
                     let obj = Bound::from_borrowed_ptr(py, obj);
-                    let args = Bound::from_borrowed_ptr(py, args).downcast_into::<PyTuple>()?;
+                    let args = Bound::from_borrowed_ptr(py, args).cast_into::<PyTuple>()?;
                     let kwargs = Bound::from_borrowed_ptr_or_opt(py, kwargs)
-                        .map(|value| value.downcast_into::<PyDict>())
+                        .map(|value| value.cast_into::<PyDict>())
                         .transpose()?;
                     $handler(&obj, &args, kwargs.as_ref())
                 }));
@@ -167,14 +167,14 @@ fn as_uuid<'py>(
         .map(|value| value.extract())
         .transpose()?
         .unwrap_or(4);
-    crate::binary::_binary_as_uuid(obj.downcast::<PyBytes>()?, subtype(obj)?, rep)
+    crate::binary::_binary_as_uuid(obj.cast::<PyBytes>()?, subtype(obj)?, rep)
 }
 
 fn equals(obj: &Bound<'_, PyAny>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
     Ok(
         other.is_instance(crate::bridge::binary(obj.py())?.as_any())?
             && subtype(obj)? == subtype(other)?
-            && obj.downcast::<PyBytes>()?.as_bytes() == other.downcast::<PyBytes>()?.as_bytes(),
+            && obj.cast::<PyBytes>()?.as_bytes() == other.cast::<PyBytes>()?.as_bytes(),
     )
 }
 
@@ -289,7 +289,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let int64 = py
         .get_type::<PyType>()
         .call1(("Int64", (py.get_type::<PyInt>(),), attrs))?
-        .downcast_into::<PyType>()?;
+        .cast_into::<PyType>()?;
     module.add("Int64", &int64)?;
 
     let attrs = PyDict::new(py);
@@ -309,7 +309,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let binary = py
         .get_type::<PyType>()
         .call1(("Binary", (py.get_type::<PyBytes>(),), attrs))?
-        .downcast_into::<PyType>()?;
+        .cast_into::<PyType>()?;
     for definition in [
         &uuid_constructor::DEF,
         &uuid_conversion::DEF,

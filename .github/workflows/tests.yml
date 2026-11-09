@@ -1,0 +1,43 @@
+name: Test Library features
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests / Linux / Python 3.12
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      -   uses: actions/checkout@v4
+      -   uses: actions/setup-python@v5
+          with:
+              python-version: "3.12"
+      -   name: Install Rust
+          run: rustup toolchain install stable --profile minimal --no-self-update
+      -   name: Build and install release wheel
+          run: |
+              python3 -m pip install --upgrade pip
+              python3 -m pip install "maturin>=1.15,<2" "pytest>=9.2" tzdata
+              python3 -m maturin build --release --out dist
+              python3 -m pip install --no-deps dist/*.whl
+      -   name: Build independent PyMongo reference
+          working-directory: ${{ runner.temp }}
+          run: python3 "$GITHUB_WORKSPACE/scripts/extract_pymongo_bson.py" --version 4.19.0
+      -   name: Run library tests against installed wheel
+          working-directory: ${{ runner.temp }}
+          run: python3 -m pytest "$GITHUB_WORKSPACE/tests" --import-mode=importlib -q

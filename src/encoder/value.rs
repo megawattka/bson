@@ -53,7 +53,7 @@ impl<'py> Encoder<'py> {
             self.writer.write(&value.extract::<f64>()?.to_le_bytes())?;
             return Ok(());
         }
-        if let Ok(text) = value.downcast::<PyString>() {
+        if let Ok(text) = value.cast::<PyString>() {
             if !value.is_exact_instance_of::<PyString>()
                 && let Some(state) = crate::code::state(&value)?
             {
@@ -78,7 +78,7 @@ impl<'py> Encoder<'py> {
             self.string(text)?;
             return Ok(());
         }
-        if let Ok(bytes) = value.downcast::<PyBytes>() {
+        if let Ok(bytes) = value.cast::<PyBytes>() {
             let subtype = binary_subtype(&value)?;
             self.binary(name, bytes.as_bytes(), subtype)?;
             return Ok(());
@@ -92,13 +92,13 @@ impl<'py> Encoder<'py> {
             self.push(frame)?;
             return Ok(());
         }
-        if let Ok(document) = value.downcast::<PyDict>() {
+        if let Ok(document) = value.cast::<PyDict>() {
             self.writer.header(0x03, name)?;
             let start = self.writer.begin_document()?;
             self.push(Frame::document(document.clone(), start, false)?)?;
             return Ok(());
         }
-        if let Ok(list) = value.downcast::<PyList>() {
+        if let Ok(list) = value.cast::<PyList>() {
             self.writer.header(0x04, name)?;
             let start = self.writer.begin_document()?;
             self.push(Frame {
@@ -110,7 +110,7 @@ impl<'py> Encoder<'py> {
             })?;
             return Ok(());
         }
-        if let Ok(tuple) = value.downcast::<PyTuple>() {
+        if let Ok(tuple) = value.cast::<PyTuple>() {
             self.writer.header(0x04, name)?;
             let start = self.writer.begin_document()?;
             self.push(Frame {
@@ -212,10 +212,10 @@ impl<'py> Encoder<'py> {
     }
 
     fn regex(&mut self, name: &[u8], pattern: &Bound<'_, PyAny>, flags: i64) -> PyResult<()> {
-        let bytes = if let Ok(text) = pattern.downcast::<PyString>() {
+        let bytes = if let Ok(text) = pattern.cast::<PyString>() {
             text.to_str()?.as_bytes()
         } else {
-            pattern.downcast::<PyBytes>()?.as_bytes()
+            pattern.cast::<PyBytes>()?.as_bytes()
         };
         if bytes.contains(&0) {
             return Err(invalid("regex patterns must not contain the NULL byte"));

@@ -104,12 +104,12 @@ impl ObjectId {
         if let Ok(other) = oid.extract::<PyRef<'_, Self>>() {
             return Ok(Self { bytes: other.bytes });
         }
-        if let Ok(bytes) = oid.downcast::<PyBytes>()
+        if let Ok(bytes) = oid.cast::<PyBytes>()
             && let Ok(bytes) = bytes.as_bytes().try_into()
         {
             return Ok(Self { bytes });
         }
-        if let Ok(text) = oid.downcast::<PyString>() {
+        if let Ok(text) = oid.cast::<PyString>() {
             let text = text.to_string_lossy();
             if text.len() == 24 && text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
                 let mut bytes = [0; 12];
@@ -193,7 +193,7 @@ impl ObjectId {
         other: &Bound<'_, PyAny>,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let Ok(other) = other.extract::<PyRef<'_, Self>>() else {
             return Ok(py.NotImplemented());
         };

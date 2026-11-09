@@ -29,7 +29,7 @@ impl DBRef {
     ) -> PyResult<Self> {
         let py = collection.py();
         let collection = collection
-            .downcast::<PyString>()
+            .cast::<PyString>()
             .map_err(|_| PyTypeError::new_err("collection must be an instance of str"))?
             .clone()
             .unbind();
@@ -37,7 +37,7 @@ impl DBRef {
             .filter(|value| !value.is_none())
             .map(|value| {
                 value
-                    .downcast::<PyString>()
+                    .cast::<PyString>()
                     .map(|value| value.clone().unbind())
                     .map_err(|_| PyTypeError::new_err("database must be an instance of str"))
             })
@@ -152,7 +152,7 @@ impl DBRef {
             database: self.database.as_ref().map(|v| v.clone_ref(py)),
             extra: copy
                 .call1((self.extra.bind(py), memo))?
-                .downcast_into::<PyDict>()?
+                .cast_into::<PyDict>()?
                 .unbind(),
         })
     }

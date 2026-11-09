@@ -34,7 +34,7 @@ pub fn uuid_bytes(
         ));
     }
     let bytes = value.getattr("bytes")?;
-    let bytes = bytes.downcast::<PyBytes>()?;
+    let bytes = bytes.cast::<PyBytes>()?;
     let bytes = bytes
         .as_bytes()
         .try_into()

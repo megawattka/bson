@@ -50,7 +50,7 @@ pub(super) fn text<'py>(py: Python<'py>, bytes: &[u8]) -> PyResult<Bound<'py, Py
     }
     .map_err(|error| InvalidBSON::new_err(format!("invalid UTF-8 in BSON: {error}")))?;
     // PyUnicode_DecodeUTF8 returns a Unicode object on success.
-    Ok(text.downcast_into::<PyString>()?)
+    Ok(text.cast_into::<PyString>()?)
 }
 
 fn binary<'py>(

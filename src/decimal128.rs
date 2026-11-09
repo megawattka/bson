@@ -11,7 +11,7 @@ const NAN: u64 = 0x7c00_0000_0000_0000;
 const SNAN: u64 = 0x7e00_0000_0000_0000;
 const STEERING: u64 = 3 << 61;
 
-fn context(py: Python<'_>, trap: bool) -> PyResult<Bound<'_, PyAny>> {
+fn default_decimal128_context(py: Python<'_>, trap: bool) -> PyResult<Bound<'_, PyAny>> {
     let decimal = py.import("decimal")?;
     let kwargs = PyDict::new(py);
     for (key, value) in [
@@ -37,7 +37,7 @@ fn context(py: Python<'_>, trap: bool) -> PyResult<Bound<'_, PyAny>> {
 
 #[pyfunction]
 pub fn create_decimal128_context(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
-    context(py, false)
+    default_decimal128_context(py, false)
 }
 
 #[pyclass(module = "bson.decimal128", frozen)]
@@ -84,7 +84,8 @@ impl Decimal128 {
                 "value must be str, Decimal, or (high, low)",
             ));
         }
-        let decimal = context(py, true)?.call_method1("create_decimal", (value,))?;
+        let decimal = default_decimal128_context(py, true)?
+            .call_method1("create_decimal", (value,))?;
         let tuple = decimal.call_method0("as_tuple")?;
         let sign: bool = tuple.get_item(0)?.extract::<u8>()? != 0;
         let sign = if sign { SIGN } else { 0 };
@@ -119,7 +120,7 @@ impl Decimal128 {
     #[staticmethod]
     fn from_bid(value: &Bound<'_, PyAny>) -> PyResult<Self> {
         let bytes = value
-            .downcast::<PyBytes>()
+            .cast::<PyBytes>()
             .map_err(|_| PyTypeError::new_err("value must be bytes"))?;
         Ok(Self {
             bytes: bytes
@@ -157,7 +158,8 @@ impl Decimal128 {
             .map(|byte| byte - b'0')
             .collect();
         let tuple = (sign, PyTuple::new(py, digits)?, exponent);
-        context(py, true)?.call_method1("create_decimal", (tuple,))
+        default_decimal128_context(py, true)?
+            .call_method1("create_decimal", (tuple,))
     }
 
     fn __str__(&self, py: Python<'_>) -> PyResult<String> {

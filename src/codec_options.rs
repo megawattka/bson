@@ -217,7 +217,7 @@ impl TypeRegistry {
                         "TypeEncoders cannot change how built-in types are encoded",
                     ));
                 }
-                let python_type = python_type.downcast::<PyType>()?.clone();
+                let python_type = python_type.cast::<PyType>()?.clone();
                 let transform = value.getattr("transform_python")?;
                 encoder_map.insert(python_type.as_ptr() as usize, transform.clone().unbind());
                 encoders.push((python_type.unbind(), transform.unbind()));
@@ -227,7 +227,7 @@ impl TypeRegistry {
                 if !bson_type.is_instance_of::<PyType>() {
                     return Err(PyTypeError::new_err("bson_type must be a type"));
                 }
-                let bson_type = bson_type.downcast::<PyType>()?.clone();
+                let bson_type = bson_type.cast::<PyType>()?.clone();
                 let transform = value.getattr("transform_bson")?;
                 decoder_map.insert(bson_type.as_ptr() as usize, transform.clone().unbind());
                 decoders.push((bson_type.unbind(), transform.unbind()));
@@ -262,7 +262,7 @@ fn builtin_type(py: Python<'_>, candidate: &Bound<'_, PyAny>) -> PyResult<bool> 
     for name in ["bool", "bytes", "dict", "float", "int", "list", "str", "tuple"] {
         let builtins = py.import("builtins")?;
         let builtin = builtins.getattr(name)?;
-        if candidate.downcast::<PyType>()?.is_subclass(&builtin)? {
+        if candidate.cast::<PyType>()?.is_subclass(&builtin)? {
             return Ok(true);
         }
     }
@@ -280,7 +280,7 @@ pub struct CodecOptions {
 
 impl Clone for CodecOptions {
     fn clone(&self) -> Self {
-        Python::with_gil(|py| Self {
+        Python::attach(|py| Self {
             uuid: self.uuid,
             tz_aware: self.tz_aware,
             tzinfo: self.tzinfo.as_ref().map(|value| value.clone_ref(py)),

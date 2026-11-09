@@ -90,7 +90,7 @@ impl<'py> Frame<'py> {
                     if *root_id_present
                         && *root
                         && key
-                            .downcast::<PyString>()
+                            .cast::<PyString>()
                             .is_ok_and(|key| key.to_str().is_ok_and(|key| key == "_id"))
                     {
                         continue;
@@ -186,7 +186,7 @@ impl<'py> Encoder<'py> {
 }
 
 fn field_name<'a>(key: &'a Bound<'_, PyAny>, check_keys: bool) -> PyResult<&'a [u8]> {
-    let key = key.downcast::<PyString>().map_err(|_| {
+    let key = key.cast::<PyString>().map_err(|_| {
         invalid(format!(
             "documents must have only string keys, key was {}",
             key.repr().map_or_else(
@@ -231,7 +231,7 @@ fn binary_document<'py>(
     if !value.is_exact_instance_of::<PyBytes>() {
         return Ok(None);
     }
-    let Ok(bytes) = value.downcast::<PyBytes>() else {
+    let Ok(bytes) = value.cast::<PyBytes>() else {
         return Ok(None);
     };
     let payload = bytes.as_bytes();
@@ -270,7 +270,7 @@ pub fn encode<'py>(
 ) -> PyResult<Bound<'py, PyBytes>> {
     let options = codec_options::resolve_all(codec_options)?;
     let dict = document
-        .downcast::<PyDict>()
+        .cast::<PyDict>()
         .map_err(|_| PyTypeError::new_err("document must be a dict with string keys"))?;
     if let Some(bytes) = binary_document(dict, check_keys)? {
         return Ok(bytes);

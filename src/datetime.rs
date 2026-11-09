@@ -4,7 +4,7 @@ use crate::codec_options::{self, CodecOptions, DatetimeConversion};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyOverflowError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::PyType;
 use pyo3::types::{PyDict, PyInt};
 
@@ -173,13 +173,13 @@ struct DatetimeTypes {
     aware_epoch: Py<PyAny>,
 }
 
-static TYPES: GILOnceCell<DatetimeTypes> = GILOnceCell::new();
-static STRUCT_ERROR: GILOnceCell<Py<PyAny>> = GILOnceCell::new();
+static TYPES: PyOnceLock<DatetimeTypes> = PyOnceLock::new();
+static STRUCT_ERROR: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
 
 fn types(py: Python<'_>) -> PyResult<&DatetimeTypes> {
     TYPES.get_or_try_init(py, || {
         let module = py.import("datetime")?;
-        let datetime = module.getattr("datetime")?.downcast_into::<PyType>()?;
+        let datetime = module.getattr("datetime")?.cast_into::<PyType>()?;
         let utc = module.getattr("timezone")?.getattr("utc")?;
         let epoch = datetime.call1((1970, 1, 1))?;
         let kwargs = PyDict::new(py);

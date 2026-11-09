@@ -120,7 +120,7 @@ fn document<'a, 'py>(
             reader.byte()?; // Validated by Reader::document before entering.
             if let Some(parent) = stack.pop() {
                 let value = if let Some(text) = frame.code {
-                    let scope = frame.container.into_any().downcast_into::<PyDict>()?;
+                    let scope = frame.container.into_any().cast_into::<PyDict>()?;
                     crate::bridge::code(py)?.call1((text, scope))?
                 } else {
                     match frame.container {
@@ -133,7 +133,7 @@ fn document<'a, 'py>(
                 frame = parent;
                 continue;
             }
-            return Ok(frame.container.into_any().downcast_into::<PyDict>()?);
+            return Ok(frame.container.into_any().cast_into::<PyDict>()?);
         }
         let tag = reader.byte()?;
         if tag == 0 {
@@ -189,7 +189,7 @@ fn document<'a, 'py>(
 }
 
 fn input<'a>(data: &'a Bound<'_, PyAny>) -> PyResult<Cow<'a, [u8]>> {
-    if let Ok(bytes) = data.downcast::<PyBytes>() {
+    if let Ok(bytes) = data.cast::<PyBytes>() {
         return Ok(Cow::Borrowed(bytes.as_bytes()));
     }
     // Snapshot mutable/exported buffers: never retain a Rust byte slice into

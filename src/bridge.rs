@@ -1,13 +1,13 @@
 //! Cached identities for native-created subclasses of immutable builtins.
 
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::PyType;
 
-static INT64: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BINARY: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static UUID: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static CODE: GILOnceCell<Py<PyType>> = GILOnceCell::new();
+static INT64: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static BINARY: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static UUID: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static CODE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
 
 pub fn code(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
     registered(py, &CODE)
@@ -20,7 +20,7 @@ pub fn register_code(cls: &Bound<'_, PyType>) -> PyResult<()> {
 
 fn cached<'py>(
     py: Python<'py>,
-    cell: &GILOnceCell<Py<PyType>>,
+    cell: &PyOnceLock<Py<PyType>>,
     module: &str,
     name: &str,
 ) -> PyResult<Bound<'py, PyType>> {
@@ -28,7 +28,7 @@ fn cached<'py>(
         Ok(py
             .import(module)?
             .getattr(name)?
-            .downcast_into::<PyType>()?
+            .cast_into::<PyType>()?
             .unbind())
     })?;
     Ok(cls.bind(py).clone())
@@ -44,7 +44,7 @@ pub fn binary(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
 
 fn registered<'py>(
     py: Python<'py>,
-    cell: &GILOnceCell<Py<PyType>>,
+    cell: &PyOnceLock<Py<PyType>>,
 ) -> PyResult<Bound<'py, PyType>> {
     cell.get(py).map(|cls| cls.bind(py).clone()).ok_or_else(|| {
         pyo3::exceptions::PyRuntimeError::new_err("native BSON types are not initialized")

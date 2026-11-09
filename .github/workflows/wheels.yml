@@ -2,7 +2,8 @@ name: Build and publish wheels
 
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - '*'
   workflow_dispatch:
 
 permissions:
@@ -13,85 +14,65 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check-release:
-    name: Skip already published versions
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      publish: ${{ steps.check.outputs.publish }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install packaging
-      - name: Check release version in private index
-        id: check
-        run: python scripts/check_release.py
-
   wheels:
-    needs: check-release
-    if: needs.check-release.outputs.publish == 'true'
     name: Wheel / ${{ matrix.platform.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.12", "3.13"]
+        python: ["3.12", "3.13", "3.14", "3.15"]
         platform:
-          - os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
-          - os: macos-15
-            target: aarch64-apple-darwin
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
+          -   os: ubuntu-24.04
+              target: x86_64-unknown-linux-gnu
+          -   os: ubuntu-24.04-arm
+              target: aarch64-unknown-linux-gnu
+          -   os: windows-2022
+              target: x86_64-pc-windows-msvc
+          -   os: macos-15
+              target: aarch64-apple-darwin
+          -   os: macos-15-intel
+              target: x86_64-apple-darwin
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Build release wheel
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          target: ${{ matrix.platform.target }}
-          manylinux: "2_28"
-          args: --release --out dist --interpreter ${{ runner.os == 'Linux' && format('python{0}', matrix.python) || 'python' }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ matrix.platform.target }}-${{ matrix.python }}
-          path: dist/*.whl
-          if-no-files-found: error
+      -   uses: actions/checkout@v4
+      -   uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python }}
+      -   name: Build release wheel
+          uses: PyO3/maturin-action@v1
+          with:
+            command: build
+            target: ${{ matrix.platform.target }}
+            manylinux: "2_28"
+            args: --release --out dist --interpreter ${{ runner.os == 'Linux' && format('python{0}', matrix.python) || 'python' }}
+      -   uses: actions/upload-artifact@v4
+          with:
+            name: wheel-${{ matrix.platform.target }}-${{ matrix.python }}
+            path: dist/*.whl
+            if-no-files-found: error
 
   sdist:
-    needs: check-release
-    if: needs.check-release.outputs.publish == 'true'
     name: Source distribution
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Build source distribution
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: source-distribution
-          path: dist/*.tar.gz
-          if-no-files-found: error
+      -   uses: actions/checkout@v4
+      -   uses: actions/setup-python@v5
+          with:
+            python-version: "3.12"
+      -   name: Build source distribution
+          uses: PyO3/maturin-action@v1
+          with:
+            command: sdist
+            args: --out dist
+      -   uses: actions/upload-artifact@v4
+          with:
+            name: source-distribution
+            path: dist/*.tar.gz
+            if-no-files-found: error
 
   publish:
     name: Upload to python.wattka.dev
@@ -100,13 +81,12 @@ jobs:
     timeout-minutes: 15
     environment: main
     steps:
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-      - name: Upload distributions
-        env:
-          UV_PUBLISH_USERNAME: ${{ secrets.PRIVATE_INDEX_USERNAME }}
-          UV_PUBLISH_PASSWORD: ${{ secrets.PRIVATE_INDEX_PASSWORD }}
-        run: uv publish --publish-url https://python.wattka.dev/ --trusted-publishing never dist/*
+      -   uses: astral-sh/setup-uv@v6
+      -   uses: actions/download-artifact@v4
+          with:
+            path: dist
+            merge-multiple: true
+      -   name: Upload distributions
+          env:
+            UV_PUBLISH_TOKEN: ${{ secrets.PACKAGE_INDEX_TOKEN }}
+          run: uv publish --publish-url https://python.wattka.dev/ --trusted-publishing never dist/*

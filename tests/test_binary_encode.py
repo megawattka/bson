@@ -1,4 +1,3 @@
-import os
 import statistics
 import struct
 import timeit
@@ -74,21 +73,17 @@ def test_large_binary_matches_reference_in_all_envelopes(subtype: int):
     payload = bytes(range(256)) * 256
     value = bson.Binary(payload, subtype)
     reference_value = reference.Binary(payload, subtype)
-    for wrap in (
-        lambda item: {"payload": item},
-        lambda item: {"child": {"payload": item}},
-        lambda item: {"payload": item, "tail": 42},
-        lambda item: {"items": [item, item]},
+    for wrap in (  # pyright: ignore[reportUnknownVariableType]
+        lambda item: {"payload": item},  # pyright: ignore[reportUnknownLambdaType]
+        lambda item: {"child": {"payload": item}},  # pyright: ignore[reportUnknownLambdaType]
+        lambda item: {"payload": item, "tail": 42},  # pyright: ignore[reportUnknownLambdaType]
+        lambda item: {"items": [item, item]},  # pyright: ignore[reportUnknownLambdaType]
     ):
-        actual = bson.encode(wrap(value))
+        actual = bson.encode(wrap(value))  # pyright: ignore[reportUnknownArgumentType]
         assert actual == reference.encode(wrap(reference_value))
         assert bson.decode(actual) == wrap(value if subtype else payload)
 
 
-@pytest.mark.skipif(
-    os.environ.get("BSON_PERFORMANCE_TESTS") != "1",
-    reason="Opt-in timing regression: set BSON_PERFORMANCE_TESTS=1",
-)
 def test_large_binary_has_no_several_fold_copy_penalty():
     payload = b"x" * 65_536
     plain_document = {"payload": payload}
@@ -103,7 +98,7 @@ def test_large_binary_has_no_several_fold_copy_penalty():
         plain_samples = []
         binary_samples = []
         for index in range(7):
-            order = (
+            order = (  # pyright: ignore[reportUnknownVariableType]
                 [(plain_timer, plain_samples), (binary_timer, binary_samples)]
                 if index % 2 == 0
                 else [
@@ -112,10 +107,10 @@ def test_large_binary_has_no_several_fold_copy_penalty():
                 ]
             )
             for timer, samples in order:
-                samples.append(timer.timeit(number=2000))
+                samples.append(timer.timeit(number=2000))  # pyright: ignore[reportUnknownMemberType]
         # A broad guard against the original ~7x slowdown, not a speed claim.
-        assert statistics.median(binary_samples) < (
-            3 * statistics.median(plain_samples)
+        assert statistics.median(binary_samples) < (  # pyright: ignore[reportUnknownArgumentType]
+            3 * statistics.median(plain_samples)  # pyright: ignore[reportUnknownArgumentType]
         ), subtype
 
 
