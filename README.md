@@ -189,6 +189,13 @@ Encoders cannot override supported built-in types or their subclasses.
 replacement for otherwise unsupported values. Pass the codec options to
 every operation that needs the conversion.
 
+## Pydantic integration
+
+BSON types can be used directly in Pydantic v2 models and `TypeAdapter`,
+without custom validators or `arbitrary_types_allowed`. Pydantic remains an
+optional dependency. See the [Pydantic integration guide](docs/pydantic.md)
+for installation, accepted values, JSON Schema, and BSON/JSON round trips.
+
 ## Building and testing
 
 Development requires CPython 3.12+, Rust/Cargo, and a system build toolchain.
