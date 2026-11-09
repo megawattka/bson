@@ -12,9 +12,11 @@ mod decimal128;
 mod decoder;
 mod encoder;
 mod errors;
+mod int64;
 mod keys;
 mod objectid;
 mod regex;
+mod schema;
 mod timestamp;
 
 /// BSON codec implemented in Rust, with no Python implementation files.

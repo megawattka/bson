@@ -3,7 +3,9 @@
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyList, PyString, PyTuple};
+use pyo3::types::{PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
+
+use crate::schema::{self, py_dict};
 
 const SIGN: u64 = 1 << 63;
 const INF: u64 = 0x7800_0000_0000_0000;
@@ -61,8 +63,63 @@ impl Decimal128 {
     }
 }
 
+#[pyfunction]
+fn validate_decimal128(value: &Bound<'_, PyAny>) -> PyResult<Decimal128> {
+    match Decimal128::new(value) {
+        Ok(value) => Ok(value),
+        Err(error) => {
+            let py = value.py();
+            let decimal_exception = py.import("decimal")?.getattr("DecimalException")?;
+            if error.is_instance(py, &decimal_exception) {
+                Err(PyValueError::new_err(format!(
+                    "invalid Decimal128: {error}"
+                )))
+            } else {
+                Err(error)
+            }
+        }
+    }
+}
+
+#[pyfunction]
+fn serialize_decimal128(value: PyRef<'_, Decimal128>) -> PyResult<String> {
+    Ok(value.to_decimal(value.py())?.str()?.to_str()?.to_owned())
+}
+
 #[pymethods]
 impl Decimal128 {
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        let py = cls.py();
+        let string = py_dict!(py, {
+            "type" => "str",
+            "strict" => true,
+        })?;
+        let validate = wrap_pyfunction!(validate_decimal128, py)?;
+        let from_string = schema::after_validator(validate.as_any(), &string)?;
+        let decimal_type = py
+            .import("decimal")?
+            .getattr("Decimal")?
+            .cast_into::<PyType>()?;
+        let decimal = schema::is_instance(&decimal_type)?;
+        let from_decimal = schema::after_validator(validate.as_any(), &decimal)?;
+        let python = schema::union(
+            py,
+            &[
+                schema::is_instance(cls)?,
+                from_string.clone(),
+                from_decimal,
+            ],
+        )?;
+        let serialize = wrap_pyfunction!(serialize_decimal128, py)?;
+        let serialization = schema::json_serializer(serialize.as_any(), &string)?;
+        schema::json_or_python(&from_string, &python, &serialization)
+    }
+
     #[new]
     fn new(value: &Bound<'_, PyAny>) -> PyResult<Self> {
         let py = value.py();

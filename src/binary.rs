@@ -3,10 +3,19 @@
 
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict};
+use pyo3::types::{PyBytes, PyDict, PyType};
 
 use crate::bridge;
 use crate::codec_options::UuidRepresentation;
+
+#[pyfunction]
+pub(crate) fn __get_pydantic_core_schema__<'py>(
+    cls: &Bound<'py, PyType>,
+    _source_type: &Bound<'py, PyAny>,
+    _handler: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyDict>> {
+    crate::schema::value_schema(cls, crate::schema::Kind::Binary)
+}
 
 pub fn transform(mut bytes: [u8; 16], representation: UuidRepresentation) -> [u8; 16] {
     match representation {

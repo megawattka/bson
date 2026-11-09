@@ -1,8 +1,9 @@
 //! Integer-only datetime conversion compatible with the limited Python ABI.
 
 use crate::codec_options::{self, CodecOptions, DatetimeConversion};
+use crate::schema;
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::{PyOverflowError, PyTypeError};
+use pyo3::exceptions::{PyOverflowError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::PyType;
@@ -114,8 +115,39 @@ pub struct DatetimeMS {
     pub value: i64,
 }
 
+#[pyfunction]
+fn validate_datetime_ms(value: &Bound<'_, PyAny>) -> PyResult<DatetimeMS> {
+    DatetimeMS::new(value).map_err(|error| {
+        if error.is_instance_of::<PyOverflowError>(value.py()) {
+            PyValueError::new_err(error.to_string())
+        } else {
+            error
+        }
+    })
+}
+
 #[pymethods]
 impl DatetimeMS {
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        let py = cls.py();
+        let integer = schema::int64(py)?;
+        let validate = wrap_pyfunction!(validate_datetime_ms, py)?;
+        let from_integer = schema::after_validator(validate.as_any(), &integer)?;
+        let datetime = schema::is_instance(types(py)?.datetime.bind(py))?;
+        let from_datetime = schema::after_validator(validate.as_any(), &datetime)?;
+        let python = schema::union(
+            py,
+            &[schema::is_instance(cls)?, from_integer.clone(), from_datetime],
+        )?;
+        let serialization = schema::json_serializer(py.get_type::<PyInt>().as_any(), &integer)?;
+        schema::json_or_python(&from_integer, &python, &serialization)
+    }
+
     #[new]
     fn new(value: &Bound<'_, PyAny>) -> PyResult<Self> {
         let value = if value.is_instance_of::<PyInt>() {

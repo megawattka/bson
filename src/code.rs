@@ -4,6 +4,15 @@ use pyo3::gc::{PyTraverseError, PyVisit};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 
+#[pyfunction]
+fn __get_pydantic_core_schema__<'py>(
+    cls: &Bound<'py, PyType>,
+    _source_type: &Bound<'py, PyAny>,
+    _handler: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyDict>> {
+    crate::schema::value_schema(cls, crate::schema::Kind::Code)
+}
+
 /// Internal state for the native-created str subclass.
 #[pyclass(module = "bson.code")]
 pub struct Code {
@@ -200,6 +209,12 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let builtins = py.import("builtins")?;
     let attrs = PyDict::new(py);
     attrs.set_item("__module__", "bson.code")?;
+    attrs.set_item(
+        "__get_pydantic_core_schema__",
+        builtins.getattr("classmethod")?.call1((wrap_pyfunction!(
+            __get_pydantic_core_schema__, py
+        )?,))?,
+    )?;
     attrs.set_item("__slots__", ("_state",))?;
     attrs.set_item(
         "__new__",

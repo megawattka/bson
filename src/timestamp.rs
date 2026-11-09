@@ -1,7 +1,7 @@
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyInt;
+use pyo3::types::{PyDict, PyInt, PyType};
 
 #[pyclass(module = "bson.timestamp", frozen)]
 #[derive(Clone, Copy)]
@@ -25,6 +25,15 @@ fn uint32(value: &Bound<'_, PyAny>, name: &str) -> PyResult<u32> {
 
 #[pymethods]
 impl Timestamp {
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        crate::schema::value_schema(cls, crate::schema::Kind::Timestamp)
+    }
+
     #[new]
     fn new(time: &Bound<'_, PyAny>, inc: &Bound<'_, PyAny>) -> PyResult<Self> {
         let time = if crate::datetime::is_datetime(time)? {

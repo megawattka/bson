@@ -286,6 +286,13 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let attrs = PyDict::new(py);
     attrs.set_item("__module__", "bson.int64")?;
     attrs.set_item("__slots__", PyTuple::empty(py))?;
+    attrs.set_item(
+        "__get_pydantic_core_schema__",
+        builtins.getattr("classmethod")?.call1((wrap_pyfunction!(
+            crate::int64::__get_pydantic_core_schema__,
+            py
+        )?,))?,
+    )?;
     let int64 = py
         .get_type::<PyType>()
         .call1(("Int64", (py.get_type::<PyInt>(),), attrs))?
@@ -294,6 +301,12 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
 
     let attrs = PyDict::new(py);
     attrs.set_item("__module__", "bson.binary")?;
+    attrs.set_item(
+        "__get_pydantic_core_schema__",
+        builtins.getattr("classmethod")?.call1((wrap_pyfunction!(
+            crate::binary::__get_pydantic_core_schema__, py
+        )?,))?,
+    )?;
     attrs.set_item(
         "__new__",
         builtins

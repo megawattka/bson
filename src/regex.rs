@@ -2,7 +2,7 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyTypeError;
 use pyo3::gc::{PyTraverseError, PyVisit};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyInt, PyString};
+use pyo3::types::{PyBytes, PyDict, PyInt, PyString, PyType};
 
 pub const FLAGS: [(char, i64); 6] = [
     ('i', 2),
@@ -29,6 +29,15 @@ pub struct Regex {
 
 #[pymethods]
 impl Regex {
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        crate::schema::value_schema(cls, crate::schema::Kind::Regex)
+    }
+
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
         visit.call(&self.pattern)
     }

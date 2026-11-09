@@ -1,5 +1,6 @@
 use pyo3::basic::CompareOp;
 use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyType};
 
 macro_rules! key {
     ($name:ident, $module:literal, $hash:expr, $min:expr) => {
@@ -7,6 +8,15 @@ macro_rules! key {
         pub struct $name;
         #[pymethods]
         impl $name {
+            #[classmethod]
+            fn __get_pydantic_core_schema__<'py>(
+                cls: &Bound<'py, PyType>,
+                _source_type: &Bound<'py, PyAny>,
+                _handler: &Bound<'py, PyAny>,
+            ) -> PyResult<Bound<'py, PyDict>> {
+                crate::schema::value_schema(cls, crate::schema::Kind::$name)
+            }
+
             #[new]
             fn new() -> Self {
                 Self

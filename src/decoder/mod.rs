@@ -16,7 +16,7 @@ use value::{ContainerKind, Value};
 
 const MAX_DEPTH: usize = 100;
 
-// Per-call and bounded: repeated batch schemas reuse both Unicode objects and
+// Per-call and bounded: repeated batch schema reuse both Unicode objects and
 // their cached Python hashes without interning attacker-controlled field names.
 // Borrowed names remain valid because the input snapshot outlives traversal.
 struct KeyCache<'a, 'py> {

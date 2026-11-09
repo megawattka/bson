@@ -5,7 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyOSError, PyOverflowError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyString, PyType};
+use pyo3::types::{PyBytes, PyDict, PyString, PyType};
+
+use crate::schema::{self, py_dict};
 
 struct Generator {
     pid: AtomicU32,
@@ -124,6 +126,37 @@ impl ObjectId {
             "id must be an instance of (bytes, str, ObjectId), not {}",
             oid.get_type()
         )))
+    }
+
+    /// Validate and serialize ObjectIds without importing Pydantic at runtime.
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        let py = cls.py();
+        let string = py_dict!(py, {
+            "type" => "str",
+            "strict" => true,
+            "min_length" => 24,
+            "max_length" => 24,
+            "pattern" => "^[0-9a-fA-F]{24}$",
+        })?;
+        let bytes = py_dict!(py, {
+            "type" => "bytes",
+            "strict" => true,
+            "min_length" => 12,
+            "max_length" => 12,
+        })?;
+        let from_string = schema::after_validator(cls.as_any(), &string)?;
+        let from_bytes = schema::after_validator(cls.as_any(), &bytes)?;
+        let python = schema::union(
+            py,
+            &[schema::is_instance(cls)?, from_string.clone(), from_bytes],
+        )?;
+        let serialization = schema::json_serializer(py.get_type::<PyString>().as_any(), &string)?;
+        schema::json_or_python(&from_string, &python, &serialization)
     }
 
     /// Create a non-unique ObjectId for a datetime, treating naive values as UTC.

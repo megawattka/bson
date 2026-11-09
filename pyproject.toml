@@ -1,6 +1,6 @@
 [project]
 name = "bson"
-version = "0.3.0"
+version = "0.4.0"
 description = "A native BSON codec implemented in Rust"
 readme = "README.md"
 authors = [
@@ -23,6 +23,7 @@ dev = [
     "pytest>=9.2.0",
     "pyright>=1.1.414",
     "ruff>=0.17.1",
+    "pydantic>=2.14.3",
 ]
 
 [tool.ruff]

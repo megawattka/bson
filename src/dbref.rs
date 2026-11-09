@@ -1,8 +1,8 @@
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::{PyAttributeError, PyTypeError};
+use pyo3::exceptions::{PyAttributeError, PyTypeError, PyValueError};
 use pyo3::gc::{PyTraverseError, PyVisit};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyString, PyTuple};
+use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 
 /// A MongoDB reference, represented on the wire as an embedded document.
 #[pyclass(module = "bson.dbref", subclass)]
@@ -18,6 +18,15 @@ pub struct DBRef {
 
 #[pymethods]
 impl DBRef {
+    #[classmethod]
+    fn __get_pydantic_core_schema__<'py>(
+        cls: &Bound<'py, PyType>,
+        _source_type: &Bound<'py, PyAny>,
+        _handler: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        crate::schema::value_schema(cls, crate::schema::Kind::DBRef)
+    }
+
     #[new]
     #[pyo3(signature = (collection, id, database=None, _extra=None, **kwargs))]
     fn new(
@@ -167,6 +176,17 @@ impl DBRef {
     fn __clear__(&mut self, py: Python<'_>) {
         self.id = py.None();
         self.extra = PyDict::new(py).unbind();
+    }
+}
+
+impl DBRef {
+    pub(crate) fn schema_document<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        for key in ["$ref", "$id", "$db"] {
+            if self.extra.bind(py).contains(key)? {
+                return Err(PyValueError::new_err("DBRef extra must not overwrite reserved fields"));
+            }
+        }
+        self.as_doc(py)
     }
 }
 
