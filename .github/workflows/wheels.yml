@@ -75,7 +75,7 @@ jobs:
             if-no-files-found: error
 
   publish:
-    name: Upload to python.wattka.dev
+    name: Upload elune to pypi
     needs: [wheels, sdist]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -89,4 +89,4 @@ jobs:
       -   name: Upload distributions
           env:
             UV_PUBLISH_TOKEN: ${{ secrets.PACKAGE_INDEX_TOKEN }}
-          run: uv publish --publish-url https://python.wattka.dev/ --trusted-publishing never dist/*
+          run: uv publish dist/*
