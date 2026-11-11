@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 import pytest
 
-from bson import ObjectId
+from elune import ObjectId
 
 HEX = "0123456789abcdefABCDEF01"
 

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from ._bson import (
+from ._elune import (
     BINARY_SUBTYPE,
     UUID_SUBTYPE,
     Binary,

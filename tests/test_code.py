@@ -1,7 +1,7 @@
 import pytest
 
-from bson import Code, decode, encode
-from bson.code import Code as SubmoduleCode
+from elune import Code, decode, encode
+from elune.code import Code as SubmoduleCode
 
 
 def test_string_inheritance():

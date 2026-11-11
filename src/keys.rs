@@ -41,5 +41,5 @@ macro_rules! key {
         }
     };
 }
-key!(MinKey, "bson.min_key", 255, true);
-key!(MaxKey, "bson.max_key", 127, false);
+key!(MinKey, "elune.min_key", 255, true);
+key!(MaxKey, "elune.max_key", 127, false);

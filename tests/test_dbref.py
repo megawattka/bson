@@ -3,8 +3,8 @@ import gc
 
 import pytest
 
-import bson
-from bson.dbref import DBRef
+import elune
+from elune.dbref import DBRef
 
 try:
     import _p_bson as reference
@@ -50,35 +50,35 @@ def test_nested_and_root_recognition():
         {"$" + "id": 1, "$" + "ref": "c", "extra": [1, 2]},
         {"$" + "ref": "c", "$" + "id": 2, "$" + "db": None},
     ):
-        assert bson.decode(bson.encode(doc)) == doc
+        assert elune.decode(elune.encode(doc)) == doc
         assert isinstance(
-            bson.decode(bson.encode({"x": [doc]}))["x"][0], DBRef,
+            elune.decode(elune.encode({"x": [doc]}))["x"][0], DBRef,
         )
     for doc in (
         {"$" + "ref": "c"},
         {"$" + "ref": 1, "$" + "id": 2},
         {"$" + "ref": "c", "$" + "id": 2, "$" + "db": 3},
     ):
-        assert bson.decode(bson.encode({"x": doc})) == {"x": doc}
+        assert elune.decode(elune.encode({"x": doc})) == {"x": doc}
 
 
 def test_roundtrip_and_check_keys():
     ref = DBRef("c", {"$" + "bad": [1]}, "db", _extra={"$" + "x": 1, "a.b": 2})
-    wire = bson.encode({"x": ref, "after": 1}, check_keys=True)
-    assert bson.decode(wire) == {"x": ref, "after": 1}
-    assert bson.decode_all(wire * 3) == [{"x": ref, "after": 1}] * 3
-    with pytest.raises(bson.InvalidDocument):
-        bson.encode({"x": ref, "$" + "bad": 1}, check_keys=True)
-    with pytest.raises(bson.InvalidDocument):
-        bson.encode({"x": DBRef("c", 1, _extra={"bad\0": 1})})
+    wire = elune.encode({"x": ref, "after": 1}, check_keys=True)
+    assert elune.decode(wire) == {"x": ref, "after": 1}
+    assert elune.decode_all(wire * 3) == [{"x": ref, "after": 1}] * 3
+    with pytest.raises(elune.InvalidDocument):
+        elune.encode({"x": ref, "$" + "bad": 1}, check_keys=True)
+    with pytest.raises(elune.InvalidDocument):
+        elune.encode({"x": DBRef("c", 1, _extra={"bad\0": 1})})
 
 
 def test_cycles_and_gc():
     identifier = {}
     ref = DBRef("c", identifier)  # pyright: ignore[reportUnknownArgumentType]
     identifier["ref"] = ref
-    with pytest.raises(bson.InvalidDocument):
-        bson.encode({"x": ref})
+    with pytest.raises(elune.InvalidDocument):
+        elune.encode({"x": ref})
     assert gc.is_tracked(ref)
 
 
@@ -100,9 +100,9 @@ def test_pymongo_differential():
             expected = ReferenceDBRef("c", identifier, database, x=2)
             assert repr(actual) == repr(expected)
             for check in (False, True):
-                wire = bson.encode({"x": actual}, check_keys=check)
+                wire = elune.encode({"x": actual}, check_keys=check)
                 assert wire == reference.encode(  # pyright: ignore[reportOptionalMemberAccess]
                     {"x": expected}, check_keys=check,
                 )
-                assert bson.decode(wire)["x"] == actual
+                assert elune.decode(wire)["x"] == actual
                 assert reference.decode(wire)["x"] == expected  # pyright: ignore[reportUnknownMemberType, reportOptionalMemberAccess]

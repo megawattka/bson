@@ -2,8 +2,8 @@ import struct
 
 import pytest
 
-from bson import Int64, decode, decode_all, encode
-from bson.int64 import Int64 as ModuleInt64
+from elune import Int64, decode, decode_all, encode
+from elune.int64 import Int64 as ModuleInt64
 
 try:
     from _p_bson import Int64 as ReferenceInt64

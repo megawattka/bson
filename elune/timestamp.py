@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._bson import Timestamp
+from ._elune import Timestamp
 
 if TYPE_CHECKING:
     from datetime import datetime

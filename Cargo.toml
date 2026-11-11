@@ -1,10 +1,10 @@
 [package]
-name = "bson"
+name = "elune"
 version = "0.4.0"
 edition = "2024"
 
 [lib]
-name = "_bson"
+name = "_elune"
 crate-type = ["cdylib"]
 
 [dependencies]

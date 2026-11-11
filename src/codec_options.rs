@@ -24,7 +24,7 @@ impl UuidRepresentation {
             5 => Ok(Self::JavaLegacy),
             6 => Ok(Self::CSharpLegacy),
             _ => Err(PyValueError::new_err(
-                "uuid_representation must be a value from bson.binary.UuidRepresentation",
+                "uuid_representation must be a value from elune.binary.UuidRepresentation",
             )),
         }
     }
@@ -70,13 +70,13 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     values.set_item("DATETIME_MS", 3)?;
     values.set_item("DATETIME_AUTO", 4)?;
     let conversion = int_enum.call1(("DatetimeConversion", values))?;
-    conversion.setattr("__module__", "bson.codec_options")?;
+    conversion.setattr("__module__", "elune.codec_options")?;
     module.add("DatetimeConversion", conversion)?;
     Ok(())
 }
 
 /// Codec policies parsed once per operation.
-#[pyclass(module = "bson.codec_options", subclass)]
+#[pyclass(module = "elune.codec_options", subclass)]
 pub struct TypeEncoder;
 
 #[pymethods]
@@ -93,7 +93,7 @@ impl TypeEncoder {
     }
 }
 
-#[pyclass(module = "bson.codec_options", subclass)]
+#[pyclass(module = "elune.codec_options", subclass)]
 pub struct TypeDecoder;
 
 #[pymethods]
@@ -110,7 +110,7 @@ impl TypeDecoder {
     }
 }
 
-#[pyclass(module = "bson.codec_options", subclass)]
+#[pyclass(module = "elune.codec_options", subclass)]
 pub struct TypeCodec;
 
 #[pymethods]
@@ -119,7 +119,7 @@ impl TypeCodec {
     fn new() -> Self { Self }
 }
 
-#[pyclass(module = "bson.codec_options", frozen)]
+#[pyclass(module = "elune.codec_options", frozen)]
 pub struct TypeRegistry {
     pub codecs: Vec<Py<PyAny>>,
     pub fallback: Option<Py<PyAny>>,
@@ -269,7 +269,7 @@ fn builtin_type(py: Python<'_>, candidate: &Bound<'_, PyAny>) -> PyResult<bool> 
     Ok(false)
 }
 
-#[pyclass(module = "bson.codec_options", frozen)]
+#[pyclass(module = "elune.codec_options", frozen)]
 pub struct CodecOptions {
     pub uuid: UuidRepresentation,
     pub tz_aware: bool,

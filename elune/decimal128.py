@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._bson import Decimal128, create_decimal128_context
+from ._elune import Decimal128, create_decimal128_context
 
 if TYPE_CHECKING:
     from decimal import Context, Decimal

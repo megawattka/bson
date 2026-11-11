@@ -21,7 +21,7 @@ mod timestamp;
 
 /// BSON codec implemented in Rust, with no Python implementation files.
 #[pymodule(gil_used = false)]
-fn _bson(module: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _elune(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(encoder::encode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode_all, module)?)?;
@@ -103,9 +103,9 @@ fn _bson(module: &Bound<'_, PyModule>) -> PyResult<()> {
             &["BSONError", "InvalidBSON", "InvalidDocument", "InvalidId"][..],
         ),
     ] {
-        let fullname = format!("bson.{name}");
+        let fullname = format!("elune.{name}");
         let child = PyModule::new(module.py(), &fullname)?;
-    child.setattr("__package__", "bson")?;
+        child.setattr("__package__", "elune")?;
         child.setattr(
             "__spec__",
             spec_from_loader.call1((&fullname, &builtin_importer))?,

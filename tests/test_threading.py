@@ -8,8 +8,8 @@ from threading import Barrier
 
 import pytest
 
-from bson import Binary, Code, ObjectId, decode, decode_all, encode
-from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
+from elune import Binary, Code, ObjectId, decode, decode_all, encode
+from elune.codec_options import CodecOptions, TypeCodec, TypeRegistry
 
 
 class DecimalCodec(TypeCodec):
@@ -55,7 +55,7 @@ def test_import_does_not_enable_gil():
             "-c",
             (
                 "import sys; assert not sys._is_gil_enabled(); "
-                "import bson; assert not sys._is_gil_enabled()"
+                "import elune; assert not sys._is_gil_enabled()"
             ),
         ],
         check=False,

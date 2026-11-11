@@ -3,11 +3,11 @@ from typing import Any
 
 import pytest
 
-import bson
+import elune
 
 
 def test_empty_documents_are_independent():
-    result = bson.decode_all(bson.encode({}) * 1000)
+    result = elune.decode_all(elune.encode({}) * 1000)
     assert result == [{}] * 1000
     result[0]["changed"] = True
     assert result[1:] == [{}] * 999
@@ -23,28 +23,28 @@ def test_stack_reuse_with_alternating_depths_and_scope():
         {},
         {"x": 1},
         {"a": [{}, {"b": [1, [], {}]}], "after": True},
-        {"code": bson.Code("x", {"a": [{"b": 2}]}), "after": 3},
+        {"code": elune.Code("x", {"a": [{"b": 2}]}), "after": 3},
         {},
         deepest,
     ] * 10
     assert (
-        bson.decode_all(b"".join(bson.encode(x) for x in documents))  # pyright: ignore[reportUnknownArgumentType, reportUnknownVariableType]
+        elune.decode_all(b"".join(elune.encode(x) for x in documents))  # pyright: ignore[reportUnknownArgumentType, reportUnknownVariableType]
         == documents
     )
 
 
 def test_empty_fast_path_validates_boundaries():
-    empty = bson.encode({})
+    empty = elune.encode({})
     for invalid in (
         b"\x04\0\0\0\0",
         b"\x05\0\0\0\x01",
         b"\x06\0\0\0\0",
         empty + b"\x05\0",
     ):
-        with pytest.raises(bson.InvalidBSON):
-            bson.decode(invalid)
-        with pytest.raises(bson.InvalidBSON):
-            bson.decode_all(empty * 10 + invalid)
+        with pytest.raises(elune.InvalidBSON):
+            elune.decode(invalid)
+        with pytest.raises(elune.InvalidBSON):
+            elune.decode_all(empty * 10 + invalid)
 
 
 def test_strict_utf8_in_names_and_values():
@@ -60,10 +60,10 @@ def test_strict_utf8_in_names_and_values():
             b"\x02x\0" + struct.pack("<i", len(invalid) + 1) + invalid + b"\0",
         ):
             data = struct.pack("<i", len(body) + 5) + body + b"\0"
-            with pytest.raises(bson.InvalidBSON, match="UTF-8"):
-                bson.decode(data)
-            with pytest.raises(bson.InvalidBSON, match="UTF-8"):
-                bson.decode_all(bson.encode({}) + data)
+            with pytest.raises(elune.InvalidBSON, match="UTF-8"):
+                elune.decode(data)
+            with pytest.raises(elune.InvalidBSON, match="UTF-8"):
+                elune.decode_all(elune.encode({}) + data)
 
 
 def test_unicode_and_embedded_nuls():
@@ -73,9 +73,9 @@ def test_unicode_and_embedded_nuls():
         "кириллица": "привет" * 1000,
         "emoji🦀": "🦀\0世界" * 1000,
     }
-    data = bson.encode(document)
-    assert bson.decode(data) == document
-    assert bson.decode_all(data * 10) == [document] * 10
+    data = elune.encode(document)
+    assert elune.decode(data) == document
+    assert elune.decode_all(data * 10) == [document] * 10
 
 
 def test_batch_key_cache_collisions_and_independent_documents():
@@ -90,28 +90,28 @@ def test_batch_key_cache_collisions_and_independent_documents():
         }
         for index in range(150)
     ]
-    data = b"".join(bson.encode(doc) for doc in documents)
-    result = bson.decode_all(data)
+    data = b"".join(elune.encode(doc) for doc in documents)
+    result = elune.decode_all(data)
     assert result == documents
     result[0]["aca"]["aba"] = -1
     assert result[1:] == documents[1:]
 
 
 def test_batch_cached_names_do_not_hide_invalid_utf8():
-    valid = bson.encode({"aXa": 1})
+    valid = elune.encode({"aXa": 1})
     body = b"\x10a\xffa\0" + struct.pack("<i", 2)
     invalid = struct.pack("<i", len(body) + 5) + body + b"\0"
-    with pytest.raises(bson.InvalidBSON, match="UTF-8"):
-        bson.decode_all(valid * 100 + invalid)
+    with pytest.raises(elune.InvalidBSON, match="UTF-8"):
+        elune.decode_all(valid * 100 + invalid)
 
 
 def test_batch_key_cache_preserves_duplicate_names_and_dbrefs():
     body = b"\x10same\0" + struct.pack("<i", 1)
     body += b"\x10same\0" + struct.pack("<i", 2)
     duplicate = struct.pack("<i", len(body) + 5) + body + b"\0"
-    reference = {"child": bson.DBRef("items", 42, "db", extra=True)}
-    data = (duplicate + bson.encode(reference)) * 100
-    assert bson.decode_all(data) == [{"same": 2}, reference] * 100
+    reference = {"child": elune.DBRef("items", 42, "db", extra=True)}
+    data = (duplicate + elune.encode(reference)) * 100
+    assert elune.decode_all(data) == [{"same": 2}, reference] * 100
 
 
 def test_dbref_detection_preserves_plain_documents_and_scope():
@@ -120,10 +120,10 @@ def test_dbref_detection_preserves_plain_documents_and_scope():
         {"$ref": "items"},
         {"$ref": "items", "$id": 1, "$db": 123},
         {"normal": {"$id": 1}},
-        {"child": bson.DBRef("items", 1)},
-        {"code": bson.Code("x", {"$ref": "items", "$id": 1})},
+        {"child": elune.DBRef("items", 1)},
+        {"code": elune.Code("x", {"$ref": "items", "$id": 1})},
     ]
     for value in values:
-        data = bson.encode(value)
-        assert bson.decode(data) == value
-        assert bson.decode_all(data * 3) == [value] * 3
+        data = elune.encode(value)
+        assert elune.decode(data) == value
+        assert elune.decode_all(data * 3) == [value] * 3

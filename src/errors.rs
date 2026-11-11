@@ -2,7 +2,7 @@
 
 use pyo3::exceptions::PyException;
 
-pyo3::create_exception!(bson.errors, BSONError, PyException);
-pyo3::create_exception!(bson.errors, InvalidDocument, BSONError);
-pyo3::create_exception!(bson.errors, InvalidBSON, BSONError);
-pyo3::create_exception!(bson.errors, InvalidId, BSONError);
+pyo3::create_exception!(elune.errors, BSONError, PyException);
+pyo3::create_exception!(elune.errors, InvalidDocument, BSONError);
+pyo3::create_exception!(elune.errors, InvalidBSON, BSONError);
+pyo3::create_exception!(elune.errors, InvalidId, BSONError);

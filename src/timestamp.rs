@@ -3,7 +3,7 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyInt, PyType};
 
-#[pyclass(module = "bson.timestamp", frozen)]
+#[pyclass(module = "elune.timestamp", frozen)]
 #[derive(Clone, Copy)]
 pub struct Timestamp {
     #[pyo3(get)]

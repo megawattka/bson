@@ -19,7 +19,7 @@ enum RegexFlags {
     Text(String),
 }
 
-#[pyclass(module = "bson.regex")]
+#[pyclass(module = "elune.regex")]
 pub struct Regex {
     #[pyo3(get, set)]
     pub pattern: Py<PyAny>,

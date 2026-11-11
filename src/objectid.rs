@@ -73,14 +73,14 @@ fn invalid_id(oid: &Bound<'_, PyAny>) -> PyResult<PyErr> {
     );
     Ok(PyErr::from_value(
         oid.py()
-            .import("bson.errors")?
+            .import("elune.errors")?
             .getattr("InvalidId")?
             .call1((message,))?,
     ))
 }
 
 /// A MongoDB ObjectId: a timestamp, process-random bytes, and a counter.
-#[pyclass(module = "bson.objectid", frozen, subclass)]
+#[pyclass(module = "elune.objectid", frozen, subclass)]
 pub struct ObjectId {
     bytes: [u8; 12],
 }
@@ -185,7 +185,7 @@ impl ObjectId {
         match Self::new(Some(oid)) {
             Ok(_) => Ok(true),
             Err(error) => {
-                let invalid_id = oid.py().import("bson.errors")?.getattr("InvalidId")?;
+                let invalid_id = oid.py().import("elune.errors")?.getattr("InvalidId")?;
                 if error.is_instance_of::<PyTypeError>(oid.py())
                     || error.is_instance(oid.py(), &invalid_id)
                 {

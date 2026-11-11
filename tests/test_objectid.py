@@ -2,11 +2,11 @@ import datetime as dt
 
 import pytest
 
-from bson import BSONError, InvalidId, ObjectId
+from elune import BSONError, InvalidId, ObjectId
 
 
 def test_exports_and_construction():
-    assert ObjectId.__module__ == "bson.objectid"
+    assert ObjectId.__module__ == "elune.objectid"
     assert issubclass(InvalidId, BSONError)
     text = "0123456789abcdefABCDEF01"
     oid = ObjectId(oid=text)

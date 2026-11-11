@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._bson import (
+from ._elune import (
     DEFAULT_CODEC_OPTIONS,
     CodecOptions,
     TypeCodec,

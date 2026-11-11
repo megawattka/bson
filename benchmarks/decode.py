@@ -25,8 +25,8 @@ from benchmarks.encode import (
     positive_int,
     report,
 )
-import bson
-from bson import _bson  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-private-name]
+import elune
+from elune import _elune  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-private-name]
 
 if TYPE_CHECKING:
     from benchmarks.encode import Document
@@ -46,7 +46,7 @@ def inputs() -> dict[str, tuple[bytes, Document, Document]]:
     for name, document in cases.items():
         reference = cast("Document", for_pymongo(document))
         data = _p_bson.encode(reference)
-        if bson.encode(document) != data:
+        if elune.encode(document) != data:
             raise AssertionError(name)
         result[name] = (data, document, reference)
     return result
@@ -69,24 +69,24 @@ def main() -> None:
         message = "PyMongo C extension is required for this comparison"
         raise RuntimeError(message)
     print(f"Python: {sys.version.split()[0]} ({platform.platform()})")
-    print(f"bson: {bson.__file__}")
-    print(f"native: {_bson.__file__}")
+    print(f"elune: {elune.__file__}")
+    print(f"native: {_elune.__file__}")
     print(f"pymongo: {_p_bson.__file__}")
     print(f"PyMongo BSON C extension: {_p_bson.has_c()}")
     print(
         f"repeat={args.repeat}, number={args.number}, "
         f"batch_size={args.batch_size}",
     )
-    print("Median us/call; ratio=bson/pymongo (<1: bson faster)")
+    print("Median us/call; ratio=elune/pymongo (<1: elune faster)")
     print("\ndecode (one document per call)")
     cases = inputs()
     for name, (data, document, reference) in cases.items():
-        if bson.decode(data) != document or _p_bson.decode(data) != reference:  # pyright: ignore[reportUnknownMemberType]
+        if elune.decode(data) != document or _p_bson.decode(data) != reference:  # pyright: ignore[reportUnknownMemberType]
             raise AssertionError(name)
         report(
             name,
             *measure_pair(
-                bson.decode,
+                elune.decode,
                 data,
                 _p_bson.decode,  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 data,
@@ -115,7 +115,7 @@ def main() -> None:
     print("\ndecode_all (us/batch; divide by batch_size for us/document)")
     print("empty_stream contains 0 documents; other batches use batch_size")
     for name, (data, expected, reference_expected) in batches.items():
-        actual = bson.decode_all(data)
+        actual = elune.decode_all(data)
         reference_actual = _p_bson.decode_all(data)  # pyright: ignore[reportUnknownMemberType]
         if (
             actual != expected
@@ -125,7 +125,7 @@ def main() -> None:
         report(
             name,
             *measure_pair(
-                bson.decode_all,
+                elune.decode_all,
                 data,
                 _p_bson.decode_all,  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 data,

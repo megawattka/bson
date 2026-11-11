@@ -1,5 +1,5 @@
 [project]
-name = "bson"
+name = "elune"
 version = "0.4.0"
 description = "A native BSON codec implemented in Rust"
 readme = "README.md"
@@ -62,7 +62,7 @@ strict-checking = true
     "import-private-name",
 ]
 "benchmarks/*" = ["magic-value-comparison", "assert", "print"]
-"bson/*" = [
+"elune/*" = [
     "undefined-local-with-import-star",
     "unsorted-imports",
     "line-too-long",
@@ -97,7 +97,7 @@ exclude = ["_out"]
 typeCheckingMode = "strict"
 
 [[tool.pyright.executionEnvironments]]
-root = "bson"
+root = "elune"
 reportUnknownVariableType = "none"
 
 [[tool.pyright.executionEnvironments]]
@@ -107,12 +107,12 @@ reportPossiblyUnboundVariable = "none"
 
 [tool.maturin]
 python-source = "."
-module-name = "bson._bson"
+module-name = "elune._elune"
 features = ["pyo3/extension-module"]
 exclude = [
-    "src/bson/__init__.pyd",
-    "src/bson/__init__*.so",
-    "src/bson/_bson*",
-    "src/bson/*.pdb",
-    "src/bson/__pycache__/**",
+    "src/elune/__init__.pyd",
+    "src/elune/__init__*.so",
+    "src/elune/_elune*",
+    "src/elune/*.pdb",
+    "src/elune/__pycache__/**",
 ]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ._bson import DBRef
+from ._elune import DBRef
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

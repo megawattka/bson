@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from bson import (
+from elune import (
     DEFAULT_CODEC_OPTIONS,
     Binary,
     CodecOptions,
@@ -10,9 +10,9 @@ from bson import (
     decode_all,
     encode,
 )
-from bson import UuidRepresentation as U
-from bson.codec_options import CodecOptions as ModuleCodecOptions
-from bson.errors import InvalidBSON
+from elune import UuidRepresentation as U
+from elune.codec_options import CodecOptions as ModuleCodecOptions
+from elune.errors import InvalidBSON
 
 REPS = (
     U.UNSPECIFIED,

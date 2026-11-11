@@ -1,7 +1,7 @@
-# BSON benchmark charts
+# Elune benchmark charts
 
 Dark blue: PyMongo BSON with its native C extension, independently installed
-as `_p_bson`. Light blue: this project's Rust BSON codec, release build.
+as `_p_bson`. Light blue: Elune's Rust BSON codec, release build.
 
 ![Encoding](encode.png)
 ![Decoding](decode.png)
@@ -14,8 +14,8 @@ axis starting at zero. `decode_all` measures batches of 100 documents, except
 those where PyMongo is faster. These are local, single-threaded microbenchmarks,
 not universal application-level performance claims.
 
-Raw samples and runtime metadata are in `results.json`. SVG versions are also
-included. Inputs and correctness checks reuse the existing benchmark helpers;
+The measurement command saves raw samples and runtime metadata to
+`results.json`. Inputs and correctness checks reuse the benchmark helpers;
 both implementations are warmed up and timing order alternates.
 
 From the repository root, after preparing `_p_bson` using the existing setup
@@ -28,5 +28,5 @@ python -m benchmarks.charts render
 ```
 
 Measurement does not require matplotlib. Rendering only reads JSON and can run
-under a different interpreter. The committed measurements used Windows x64,
-Python 3.13.7 free-threaded with the GIL disabled; rendering used Python 3.12.
+under a different interpreter. The committed charts were regenerated on
+Linux x86_64 with Python 3.13.15 and the GIL enabled.

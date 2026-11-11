@@ -6,7 +6,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import PydanticSerializationError
 import pytest
 
-from bson import (
+from elune import (
     Binary,
     Code,
     DatetimeMS,

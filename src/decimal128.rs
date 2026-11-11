@@ -42,7 +42,7 @@ pub fn create_decimal128_context(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
     default_decimal128_context(py, false)
 }
 
-#[pyclass(module = "bson.decimal128", frozen)]
+#[pyclass(module = "elune.decimal128", frozen)]
 #[derive(Clone)]
 pub struct Decimal128 {
     pub bytes: [u8; 16],

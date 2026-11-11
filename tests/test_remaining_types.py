@@ -14,7 +14,7 @@ import weakref
 
 import pytest
 
-import bson as m
+import elune as m
 
 try:  # ruff: ignore[too-many-statements-in-try-clause]
     import _p_bson as b
@@ -416,7 +416,7 @@ def test_exports() -> None:
         ("max_key", "MaxKey"),
     ]:
         assert getattr(
-            importlib.import_module("bson." + module),
+            importlib.import_module("elune." + module),
             name,
         ) is getattr(m, name)
 

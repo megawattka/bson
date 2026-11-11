@@ -1,12 +1,12 @@
-"""BSON maximum-key marker type."""
+"""BSON minimum-key marker type."""
 
 from typing import TYPE_CHECKING
 
-from ._bson import MaxKey
+from ._elune import MinKey
 
 if TYPE_CHECKING:
-    class MaxKey:
-        """BSON value that sorts after every other BSON value."""
+    class MinKey:
+        """BSON value that sorts before every other BSON value."""
 
         def __eq__(self, other: object) -> bool: ...
         def __lt__(self, other: object) -> bool: ...
@@ -16,5 +16,5 @@ if TYPE_CHECKING:
         def __hash__(self) -> int: ...
 
 __all__ = (
-    "MaxKey",
+    "MinKey",
 )

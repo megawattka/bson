@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from ._bson import Int64
+from ._elune import Int64
 
 if TYPE_CHECKING:
     class Int64(int):

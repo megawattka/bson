@@ -4,9 +4,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
 
-from bson import DatetimeMS, decode, decode_all, encode
-from bson.codec_options import DEFAULT_CODEC_OPTIONS, CodecOptions
-from bson.errors import InvalidBSON
+from elune import DatetimeMS, decode, decode_all, encode
+from elune.codec_options import DEFAULT_CODEC_OPTIONS, CodecOptions
+from elune.errors import InvalidBSON
 
 MIN_MS = -62135596800000
 MAX_MS = 253402300799999

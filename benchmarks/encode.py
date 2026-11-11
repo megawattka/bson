@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 import _p_bson  # ruff: ignore[import-private-name]
 
-import bson
-from bson import _bson  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-private-name]
+import elune
+from elune import _elune  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-private-name]
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,7 +32,7 @@ Document = dict[str, Any]
 
 def documents() -> dict[str, Document]:
     """Return representative documents to encode."""
-    oid = bson.ObjectId(bytes(range(12)))
+    oid = elune.ObjectId(bytes(range(12)))
     return {
         "small": {"x": 42, "name": "example", "active": True, "id": oid},
         "nested": {
@@ -44,9 +44,9 @@ def documents() -> dict[str, Document]:
         "binary_4k": {"payload": b"x" * 4096},
         "binary_pair": {"a": b"x" * 65_536, "b": b"y" * 65_536},
         "binary_nested": {"child": {"payload": b"x" * 65_536}},
-        "binary_sub1": {"payload": bson.Binary(b"x" * 65_536, 1)},
-        "binary_old": {"payload": bson.Binary(b"x" * 65_536, 2)},
-        "binary_user": {"payload": bson.Binary(b"x" * 65_536, 128)},
+        "binary_sub1": {"payload": elune.Binary(b"x" * 65_536, 1)},
+        "binary_old": {"payload": elune.Binary(b"x" * 65_536, 2)},
+        "binary_user": {"payload": elune.Binary(b"x" * 65_536, 128)},
         "unicode": {"text": "привет 🦀\0" * 100, "empty": ""},
     }
 
@@ -57,9 +57,9 @@ def for_pymongo(value: object) -> object:
     Returns:
         The value represented using the corresponding PyMongo types.
     """
-    if isinstance(value, bson.Binary):
+    if isinstance(value, elune.Binary):
         return _p_bson.Binary(value, value.subtype)
-    if isinstance(value, bson.ObjectId):
+    if isinstance(value, elune.ObjectId):
         return _p_bson.ObjectId(value.binary)
     if isinstance(value, Mapping):
         return cast(
@@ -110,11 +110,11 @@ def measure_pair[T, U](  # ruff: ignore[too-many-arguments, too-many-positional-
         repeat=1,
         number=min(number, 100),
     )
-    bson_times: list[float] = []
+    elune_times: list[float] = []
     pymongo_times: list[float] = []
     for index in range(repeat):
         if index % 2 == 0:
-            bson_times.extend(measure(function, document, 1, number))
+            elune_times.extend(measure(function, document, 1, number))
             pymongo_times.extend(
                 measure(reference_function, reference_document, 1, number),
             )
@@ -122,21 +122,21 @@ def measure_pair[T, U](  # ruff: ignore[too-many-arguments, too-many-positional-
             pymongo_times.extend(
                 measure(reference_function, reference_document, 1, number),
             )
-            bson_times.extend(measure(function, document, 1, number))
-    return bson_times, pymongo_times
+            elune_times.extend(measure(function, document, 1, number))
+    return elune_times, pymongo_times
 
 
 def report(
     name: str,
-    bson_times: list[float],
+    elune_times: list[float],
     pymongo_times: list[float],
 ) -> None:
     """Print median encode times and their ratio."""
-    bson_time = statistics.median(bson_times)
+    elune_time = statistics.median(elune_times)
     pymongo_time = statistics.median(pymongo_times)
-    ratio = bson_time / pymongo_time
+    ratio = elune_time / pymongo_time
     print(
-        f"{name:12} bson={bson_time:9.3f} us  "
+        f"{name:12} elune={elune_time:9.3f} us  "
         f"pymongo={pymongo_time:9.3f} us  ratio={ratio:6.3f}x",
     )
 
@@ -173,23 +173,23 @@ def main() -> None:
         message = "PyMongo C extension is required for this comparison"
         raise RuntimeError(message)
     print(f"Python: {sys.version.split()[0]} ({platform.platform()})")
-    print(f"bson: {bson.__file__}")
-    print(f"native: {_bson.__file__}")
+    print(f"elune: {elune.__file__}")
+    print(f"native: {_elune.__file__}")
     print(f"pymongo: {_p_bson.__file__}")
     print(f"PyMongo BSON C extension: {_p_bson.has_c()}")
     print(f"repeat={args.repeat}, number={args.number}")
-    print("Median us/call; ratio=bson/pymongo (<1: bson faster)")
-    print("case         bson             pymongo             ratio")
+    print("Median us/call; ratio=elune/pymongo (<1: elune faster)")
+    print("case         elune             pymongo             ratio")
     for name, document in documents().items():
         reference_document = cast("Document", for_pymongo(document))
         expected = _p_bson.encode(reference_document)
-        actual = bson.encode(document)
+        actual = elune.encode(document)
         if actual != expected:
             raise AssertionError(name)
         report(
             name,
             *measure_pair(
-                bson.encode,
+                elune.encode,
                 document,
                 _p_bson.encode,
                 reference_document,
@@ -200,7 +200,7 @@ def main() -> None:
 
     value = dt.datetime(2024, 1, 1, 12, 30, 1, 123456, tzinfo=dt.UTC)
     if (
-        bson.ObjectId.from_datetime(value).binary
+        elune.ObjectId.from_datetime(value).binary
         != _p_bson.ObjectId.from_datetime(value).binary
     ):
         message = "from_datetime"
@@ -208,7 +208,7 @@ def main() -> None:
     report(
         "from_datetime",
         *measure_pair(
-            bson.ObjectId.from_datetime,
+            elune.ObjectId.from_datetime,
             value,
             _p_bson.ObjectId.from_datetime,
             value,

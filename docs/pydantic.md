@@ -1,25 +1,25 @@
 # Pydantic integration
 
-BSON types integrate directly with **Pydantic v2**: use them as field
+Elune's BSON types integrate directly with **Pydantic v2**: use them as field
 annotations in `BaseModel` or with `TypeAdapter`. No custom validators,
 `arbitrary_types_allowed`, or `json_encoders` configuration is needed.
 Pydantic v1 is not supported by this integration.
 
 This guide describes the integration in the 0.4.0 source tree. Pydantic is
-optional: importing and using BSON alone does not require it. The integration
+optional: importing and using Elune alone does not require it. The integration
 is tested with Pydantic 2.14.3; earlier v2 releases are not verified here.
 
 ## Installation
 
-Install this BSON implementation using the index described in the
+Install Elune as described in the
 [README](../README.md#installation), then install Pydantic separately:
 
 ```sh
 python -m pip install "pydantic>=2.14.3,<3"
 ```
 
-Do not install PyMongo in the same environment: both packages provide the
-`bson` import namespace. For a source checkout, follow the README's
+Elune and PyMongo use separate import namespaces and can coexist in the same
+environment. For a source checkout, follow the README's
 [build instructions](../README.md#building-and-testing).
 
 ## Model validation and BSON round trips
@@ -27,7 +27,7 @@ Do not install PyMongo in the same environment: both packages provide the
 ```python
 from pydantic import BaseModel, Field
 
-from bson import Decimal128, Int64, ObjectId, decode, encode
+from elune import Decimal128, Int64, ObjectId, decode, encode
 
 
 class Product(BaseModel):
@@ -139,7 +139,7 @@ Use `TypeAdapter` when validation is needed without a model:
 ```python
 from pydantic import TypeAdapter, ValidationError
 
-from bson import Binary, ObjectId
+from elune import Binary, ObjectId
 
 ids = TypeAdapter(list[ObjectId])
 values = ids.validate_json('["507f1f77bcf86cd799439011"]')
@@ -182,7 +182,7 @@ the default decoder returns Python `datetime` values for in-range dates:
 ```python
 from pydantic import BaseModel
 
-from bson import CodecOptions, DatetimeConversion, DatetimeMS, decode, encode
+from elune import CodecOptions, DatetimeConversion, DatetimeMS, decode, encode
 
 
 class Event(BaseModel):

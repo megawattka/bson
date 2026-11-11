@@ -284,7 +284,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = module.py();
     let builtins = py.import("builtins")?;
     let attrs = PyDict::new(py);
-    attrs.set_item("__module__", "bson.int64")?;
+    attrs.set_item("__module__", "elune.int64")?;
     attrs.set_item("__slots__", PyTuple::empty(py))?;
     attrs.set_item(
         "__get_pydantic_core_schema__",
@@ -300,7 +300,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("Int64", &int64)?;
 
     let attrs = PyDict::new(py);
-    attrs.set_item("__module__", "bson.binary")?;
+    attrs.set_item("__module__", "elune.binary")?;
     attrs.set_item(
         "__get_pydantic_core_schema__",
         builtins.getattr("classmethod")?.call1((wrap_pyfunction!(
@@ -345,7 +345,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     values.set_item("JAVA_LEGACY", 5)?;
     values.set_item("CSHARP_LEGACY", 6)?;
     let uuid_representation = int_enum.call1(("UuidRepresentation", values))?;
-    uuid_representation.setattr("__module__", "bson.binary")?;
+    uuid_representation.setattr("__module__", "elune.binary")?;
     module.add(
         "UuidRepresentation",
         uuid_representation,

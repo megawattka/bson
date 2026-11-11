@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ._bson import Regex
+from ._elune import Regex
 
 if TYPE_CHECKING:
     import re

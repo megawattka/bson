@@ -5,7 +5,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 
 /// A MongoDB reference, represented on the wire as an embedded document.
-#[pyclass(module = "bson.dbref", subclass)]
+#[pyclass(module = "elune.dbref", subclass)]
 pub struct DBRef {
     #[pyo3(get)]
     collection: Py<PyString>,

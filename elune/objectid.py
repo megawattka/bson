@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from ._bson import ObjectId
+from ._elune import ObjectId
 
 if TYPE_CHECKING:
     from datetime import datetime

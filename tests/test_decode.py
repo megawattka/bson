@@ -8,8 +8,8 @@ from typing import Any, cast
 
 import pytest
 
-from bson import Binary, Int64, ObjectId, decode, decode_all, encode
-from bson.errors import BSONError, InvalidBSON
+from elune import Binary, Int64, ObjectId, decode, decode_all, encode
+from elune.errors import BSONError, InvalidBSON
 
 try:
     import _p_bson as reference
@@ -29,7 +29,7 @@ def test_empty_and_public_errors() -> None:
     assert decode(b"\x05\0\0\0\0") == {}
     assert decode_all(b"") == []
     assert issubclass(InvalidBSON, BSONError)
-    assert InvalidBSON.__module__ == "bson.errors"
+    assert InvalidBSON.__module__ == "elune.errors"
 
 
 def test_scalars_exact_types_and_wire_roundtrip() -> None:

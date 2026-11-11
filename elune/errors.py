@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from ._bson import BSONError, InvalidBSON, InvalidDocument, InvalidId
+from ._elune import BSONError, InvalidBSON, InvalidDocument, InvalidId
 
 if TYPE_CHECKING:
     class BSONError(Exception):

@@ -109,7 +109,7 @@ pub fn from_millis(
     }
 }
 
-#[pyclass(module = "bson.datetime_ms", frozen)]
+#[pyclass(module = "elune.datetime_ms", frozen)]
 #[derive(Clone, Copy)]
 pub struct DatetimeMS {
     pub value: i64,

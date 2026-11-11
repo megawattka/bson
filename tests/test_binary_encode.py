@@ -4,14 +4,14 @@ import timeit
 
 import pytest
 
-import bson
+import elune
 
 
 def test_sizes_subtypes_and_keys():
     class CustomBytes(bytes):
         pass
 
-    class CustomBinary(bson.Binary):
+    class CustomBinary(elune.Binary):
         pass
 
     for size in (0, 255, 4095, 4096, 4097, 65536, 1048576):
@@ -25,14 +25,14 @@ def test_sizes_subtypes_and_keys():
             for cls, subtype in (
                 (bytes, 0),
                 (CustomBytes, 0),
-                (bson.Binary, 0),
-                (bson.Binary, 2),
-                (bson.Binary, 128),
+                (elune.Binary, 0),
+                (elune.Binary, 2),
+                (elune.Binary, 128),
                 (CustomBinary, 255),
             ):
                 value = (
                     cls(payload, subtype)
-                    if issubclass(cls, bson.Binary)
+                    if issubclass(cls, elune.Binary)
                     else cls(payload)
                 )
                 inner = (
@@ -49,9 +49,9 @@ def test_sizes_subtypes_and_keys():
                     + b"\0"
                 )
                 expected = struct.pack("<i", len(body) + 4) + body
-                actual = bson.encode({key: value})
+                actual = elune.encode({key: value})
                 assert actual == expected
-                assert bson.decode(actual)[key] == (
+                assert elune.decode(actual)[key] == (
                     value if subtype else payload
                 )
 
@@ -61,17 +61,17 @@ def test_general_encoder_paths():
     for document in (
         {"a": payload, "b": payload},
         {"a": {"payload": payload}},
-        {"a": [payload, bson.Binary(payload, 2)]},
+        {"a": [payload, elune.Binary(payload, 2)]},
         {"payload": payload, "tail": 42, "_id": 1},
     ):
-        assert bson.decode(bson.encode(document)) == document
+        assert elune.decode(elune.encode(document)) == document
 
 
 @pytest.mark.parametrize("subtype", [0, 1, 2, 128])
 def test_large_binary_matches_reference_in_all_envelopes(subtype: int):
     reference = pytest.importorskip("_p_bson")
     payload = bytes(range(256)) * 256
-    value = bson.Binary(payload, subtype)
+    value = elune.Binary(payload, subtype)
     reference_value = reference.Binary(payload, subtype)
     for wrap in (  # pyright: ignore[reportUnknownVariableType]
         lambda item: {"payload": item},  # pyright: ignore[reportUnknownLambdaType]
@@ -79,19 +79,19 @@ def test_large_binary_matches_reference_in_all_envelopes(subtype: int):
         lambda item: {"payload": item, "tail": 42},  # pyright: ignore[reportUnknownLambdaType]
         lambda item: {"items": [item, item]},  # pyright: ignore[reportUnknownLambdaType]
     ):
-        actual = bson.encode(wrap(value))  # pyright: ignore[reportUnknownArgumentType]
+        actual = elune.encode(wrap(value))  # pyright: ignore[reportUnknownArgumentType]
         assert actual == reference.encode(wrap(reference_value))
-        assert bson.decode(actual) == wrap(value if subtype else payload)
+        assert elune.decode(actual) == wrap(value if subtype else payload)
 
 
 def test_large_binary_has_no_several_fold_copy_penalty():
     payload = b"x" * 65_536
     plain_document = {"payload": payload}
-    plain_timer = timeit.Timer(lambda: bson.encode(plain_document))
+    plain_timer = timeit.Timer(lambda: elune.encode(plain_document))
     for subtype in (0, 1, 2, 128):
-        document = {"payload": bson.Binary(payload, subtype)}
+        document = {"payload": elune.Binary(payload, subtype)}
         binary_timer = timeit.Timer(
-            lambda document=document: bson.encode(document),
+            lambda document=document: elune.encode(document),
         )
         plain_timer.timeit(number=1000)
         binary_timer.timeit(number=1000)
@@ -117,11 +117,11 @@ def test_large_binary_has_no_several_fold_copy_penalty():
 def test_key_and_option_validation():
     payload = b"x" * 65536
     for key in (1, "bad\0key"):
-        with pytest.raises(bson.InvalidDocument):
-            bson.encode({key: payload})  # pyright: ignore[reportArgumentType]
+        with pytest.raises(elune.InvalidDocument):
+            elune.encode({key: payload})  # pyright: ignore[reportArgumentType]
     for key in (chr(36) + "bad", "bad.key"):
-        with pytest.raises(bson.InvalidDocument):
-            bson.encode({key: payload}, check_keys=True)
-        assert bson.decode(bson.encode({key: payload})) == {key: payload}
+        with pytest.raises(elune.InvalidDocument):
+            elune.encode({key: payload}, check_keys=True)
+        assert elune.decode(elune.encode({key: payload})) == {key: payload}
     with pytest.raises(TypeError):
-        bson.encode({"payload": payload}, codec_options=object())  # pyright: ignore[reportArgumentType]
+        elune.encode({"payload": payload}, codec_options=object())  # pyright: ignore[reportArgumentType]

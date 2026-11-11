@@ -14,7 +14,7 @@ fn __get_pydantic_core_schema__<'py>(
 }
 
 /// Internal state for the native-created str subclass.
-#[pyclass(module = "bson.code")]
+#[pyclass(module = "elune.code")]
 pub struct Code {
     pub text: Py<PyString>,
     pub scope: Option<Py<PyDict>>,
@@ -208,7 +208,7 @@ pub fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = module.py();
     let builtins = py.import("builtins")?;
     let attrs = PyDict::new(py);
-    attrs.set_item("__module__", "bson.code")?;
+    attrs.set_item("__module__", "elune.code")?;
     attrs.set_item(
         "__get_pydantic_core_schema__",
         builtins.getattr("classmethod")?.call1((wrap_pyfunction!(

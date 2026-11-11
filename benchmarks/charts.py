@@ -51,8 +51,8 @@ def measure(args: argparse.Namespace) -> None:
 
     from benchmarks.decode import inputs  # ruff: ignore[import-outside-top-level]
     from benchmarks.encode import measure_pair  # ruff: ignore[import-outside-top-level]
-    import bson  # ruff: ignore[import-outside-top-level]
-    from bson import _bson  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-outside-top-level, import-private-name]
+    import elune  # ruff: ignore[import-outside-top-level]
+    from elune import _elune  # pyright: ignore[reportPrivateUsage] # ruff: ignore[import-outside-top-level, import-private-name]
 
     if not _p_bson.has_c():
         message = "PyMongo's C extension is required"
@@ -68,10 +68,10 @@ def measure(args: argparse.Namespace) -> None:
         expected: object,
         reference_expected: object,
     ) -> None:
-        function = getattr(bson, operation)
+        function = getattr(elune, operation)
         reference_function = getattr(_p_bson, operation)
         if function(value) != expected:
-            message = f"bson {operation}: {name}"
+            message = f"elune {operation}: {name}"
             raise AssertionError(message)
         if reference_function(reference) != reference_expected:
             message = f"PyMongo {operation}: {name}"
@@ -90,13 +90,13 @@ def measure(args: argparse.Namespace) -> None:
         results[operation].append(
             {
                 "case": name,
-                "bson_us": native,
+                "elune_us": native,
                 "pymongo_us": pymongo,
             },
         )
         print(
             f"{operation:10} {name:14} "
-            f"bson={statistics.median(native):.3f} us "
+            f"elune={statistics.median(native):.3f} us "
             f"pymongo={statistics.median(pymongo):.3f} us",
             flush=True,
         )
@@ -133,9 +133,9 @@ def measure(args: argparse.Namespace) -> None:
         "machine": platform.machine(),
         "processor": platform.processor(),
         "gil_enabled": getattr(sys, "_is_gil_enabled", lambda: True)(),
-        "native_module": _bson.__file__,
+        "native_module": _elune.__file__,
         "native_sha256": hashlib.sha256(
-            Path(_bson.__file__).read_bytes(),  # pyright: ignore[reportArgumentType]
+            Path(_elune.__file__).read_bytes(),  # pyright: ignore[reportArgumentType]
         ).hexdigest(),
         "reference_module": _p_bson.__file__,
         "reference_c_extension": True,
@@ -172,7 +172,7 @@ def render(args: argparse.Namespace) -> None:
         rows = math.ceil(len(cases) / 3)
         figure, axes = plt.subplots(rows, 3, figsize=(13, rows * 2.7 + 1.6))  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
         for axis, case in zip(axes.flat, cases, strict=False):  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType, reportUnknownVariableType]
-            samples = [case["pymongo_us"], case["bson_us"]]
+            samples = [case["pymongo_us"], case["elune_us"]]
             medians = [statistics.median(values) for values in samples]
             errors = [
                 [
@@ -194,7 +194,7 @@ def render(args: argparse.Namespace) -> None:
                 error_kw={"elinewidth": 1, "ecolor": "#334155"},
             )
             axis.bar_label(bars, fmt="%.3f", padding=6, fontsize=10)  # pyright: ignore[reportUnknownMemberType]
-            axis.set_xticks([0, 1], ["PyMongo BSON", "bson (Rust)"])  # pyright: ignore[reportUnknownMemberType]
+            axis.set_xticks([0, 1], ["PyMongo BSON", "elune (Rust)"])  # pyright: ignore[reportUnknownMemberType]
             axis.set_title(case["case"], loc="left", fontweight="bold", pad=12)  # pyright: ignore[reportUnknownMemberType]
             axis.set_ylabel(  # pyright: ignore[reportUnknownMemberType]
                 "\N{GREEK SMALL LETTER MU}s / batch"
@@ -209,7 +209,7 @@ def render(args: argparse.Namespace) -> None:
         for axis in list(axes.flat)[len(cases) :]:  # pyright: ignore[reportUnknownArgumentType, reportUnknownVariableType, reportUnknownMemberType]
             axis.set_visible(False)  # pyright: ignore[reportUnknownMemberType]
         figure.suptitle(  # pyright: ignore[reportUnknownMemberType]
-            f"BSON performance · {operation}",
+            f"Elune performance · {operation}",
             fontsize=23,
             fontweight="bold",
             x=0.06,
@@ -220,7 +220,7 @@ def render(args: argparse.Namespace) -> None:
         figure.legend(  # pyright: ignore[reportUnknownMemberType]
             handles=[
                 Patch(color=DARK_BLUE, label="PyMongo BSON (C extension)"),
-                Patch(color=LIGHT_BLUE, label="bson (Rust, release build)"),
+                Patch(color=LIGHT_BLUE, label="elune (Rust, release build)"),
             ],
             loc="upper left",
             bbox_to_anchor=(0.055, 0.945),

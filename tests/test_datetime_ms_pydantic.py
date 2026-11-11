@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, TypeAdapter, ValidationError
 import pytest
 
-from bson import CodecOptions, DatetimeConversion, DatetimeMS, decode, encode
+from elune import CodecOptions, DatetimeConversion, DatetimeMS, decode, encode
 
 
 @pytest.fixture

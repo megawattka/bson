@@ -1,24 +1,24 @@
-"""Public exports of the native bson codec."""
+"""Public exports of Elune's native BSON codec."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ._bson import *
-from ._bson import __all__ as __all__
-from ._bson import binary as binary
-from ._bson import code as code
-from ._bson import codec_options as codec_options
-from ._bson import datetime_ms as datetime_ms
-from ._bson import dbref as dbref
-from ._bson import decimal128 as decimal128
-from ._bson import errors as errors
-from ._bson import int64 as int64
-from ._bson import max_key as max_key
-from ._bson import min_key as min_key
-from ._bson import objectid as objectid
-from ._bson import regex as regex
-from ._bson import timestamp as timestamp
+from ._elune import *
+from ._elune import __all__ as __all__
+from ._elune import binary as binary
+from ._elune import code as code
+from ._elune import codec_options as codec_options
+from ._elune import datetime_ms as datetime_ms
+from ._elune import dbref as dbref
+from ._elune import decimal128 as decimal128
+from ._elune import errors as errors
+from ._elune import int64 as int64
+from ._elune import max_key as max_key
+from ._elune import min_key as min_key
+from ._elune import objectid as objectid
+from ._elune import regex as regex
+from ._elune import timestamp as timestamp
 
 if TYPE_CHECKING:
     from collections.abc import Buffer

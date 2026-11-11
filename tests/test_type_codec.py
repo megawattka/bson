@@ -3,17 +3,17 @@ from typing import override
 
 import pytest
 
-from bson import (
+from elune import (
     CodecOptions,
     decode,
     decode_all,
     encode,
 )
-from bson.codec_options import (
+from elune.codec_options import (
     TypeCodec,
     TypeRegistry,
 )
-from bson.errors import InvalidDocument
+from elune.errors import InvalidDocument
 
 
 class DecimalCodec(TypeCodec):

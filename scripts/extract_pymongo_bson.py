@@ -145,10 +145,10 @@ def main() -> None:
 
         run(
             "-c",
-            "import bson, _p_bson; from _p_bson import _cbson; "
+            "import elune, _p_bson; from _p_bson import _cbson; "
             "assert _p_bson.has_c(); "
             "assert _p_bson.decode(_p_bson.encode({'x': 42})) == {'x': 42}; "
-            "assert _p_bson.InvalidBSON is not bson.InvalidBSON; "
+            "assert _p_bson.InvalidBSON is not elune.InvalidBSON; "
             "print(_cbson.__file__)",
         )
         log.info("Installed compiled PyMongo BSON package as %s", target)

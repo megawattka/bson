@@ -6,7 +6,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import PydanticSerializationError
 import pytest
 
-from bson import Decimal128, decode, encode
+from elune import Decimal128, decode, encode
 
 
 @pytest.fixture

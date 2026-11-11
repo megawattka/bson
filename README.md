@@ -1,4 +1,4 @@
-# 🦀 BSON — Rust performance and Python simplicity.
+# 🦀 Elune — Rust performance and Python simplicity.
 
 A standalone BSON codec for Python, implemented in Rust with PyO3. Encode
 Python dictionaries, decode BSON documents and streams, and work with BSON
@@ -10,40 +10,30 @@ There are no runtime Python dependencies.
 
 ## Installation
 
-Packages are published at **https://python.wattka.dev/**. To install this
-implementation, explicitly select its package index: use `--index` with uv
-or `--index-url` with pip. The index URL includes `/simple/`; installing
-`bson` from the default PyPI index may select a different project.
-
 With uv, add it to a project:
 
 ```sh
-uv add bson --index https://python.wattka.dev/simple/
+uv add elune
 ```
 
 With pip:
 
 ```sh
-python -m pip install bson --index-url https://python.wattka.dev/simple/
+python -m pip install elune
 ```
 
 Matching wheels do not require Rust. Installation from a source distribution
 requires Rust/Cargo and a platform build toolchain.
-
-> **Do not install this package alongside PyMongo.** Both provide the `bson`
-> import namespace. This is an independent codec, not a replacement backend
-> for the PyMongo driver, and it does not implement the entire PyMongo BSON
-> API. Keep the implementations in separate environments and exchange BSON
-> bytes rather than mixing their Python objects.
+It is an independent codec, not a replacement backend for the PyMongo driver.
 
 ## Quick start
 
 ```python
-from bson import ObjectId, decode, decode_all, encode
+from elune import ObjectId, decode, decode_all, encode
 
 document = {
     "_id": ObjectId(),
-    "name": "Hello, BSON!",
+    "name": "Hello, Elune!",
     "values": [42, True, None],
     "payload": b"\x00\x01\x02",
 }
@@ -94,9 +84,9 @@ not encode native `uuid.UUID` objects. Prefer `STANDARD` for new data:
 ```python
 from uuid import UUID
 
-from bson import decode, encode
-from bson.binary import UuidRepresentation
-from bson.codec_options import CodecOptions
+from elune import decode, encode
+from elune.binary import UuidRepresentation
+from elune.codec_options import CodecOptions
 
 options = CodecOptions(uuid_representation=UuidRepresentation.STANDARD)
 value = UUID("00112233-4455-6677-8899-aabbccddeeff")
@@ -118,8 +108,8 @@ datetimes by default.
 ```python
 from datetime import UTC, datetime, timedelta, timezone
 
-from bson import decode, encode
-from bson.codec_options import CodecOptions
+from elune import decode, encode
+from elune.codec_options import CodecOptions
 
 zone = timezone(timedelta(hours=3))
 options = CodecOptions(tz_aware=True, tzinfo=zone)
@@ -150,8 +140,8 @@ convert application types. For example, store `Decimal` as BSON Decimal128:
 from decimal import Decimal
 from typing import override
 
-from bson import Decimal128, decode, encode
-from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
+from elune import Decimal128, decode, encode
+from elune.codec_options import CodecOptions, TypeCodec, TypeRegistry
 
 
 class DecimalCodec(TypeCodec):
@@ -230,8 +220,8 @@ uv run pytest tests -q
 
 The script downloads PyMongo sources, verifies the archive's SHA256, renames
 its BSON package to `_p_bson`, and builds its C extension. It requires network
-access and a C toolchain. This reference does not install a second package
-under the `bson` namespace. Without it, reference-dependent tests may skip.
+access and a C toolchain. This reference is independent of the `elune`
+namespace. Without it, reference-dependent tests may skip.
 
 ## Benchmarks
 

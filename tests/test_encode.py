@@ -7,8 +7,8 @@ from typing import Any, Never, cast
 
 import pytest
 
-from bson import ObjectId, encode
-from bson.errors import BSONError, InvalidDocument
+from elune import ObjectId, encode
+from elune.errors import BSONError, InvalidDocument
 
 try:
     import _p_bson as reference
