@@ -1,4 +1,4 @@
-//! Public API and iterative document traversal, shared by decode/decode_all.
+//! Public API and iterative document traversal, shared by all decoding functions.
 
 mod reader;
 mod value;
@@ -6,6 +6,8 @@ mod value;
 use std::borrow::Cow;
 
 use pyo3::buffer::PyBuffer;
+use pyo3::class::gc::{PyTraverseError, PyVisit};
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyList, PyString};
 
@@ -234,4 +236,93 @@ pub fn decode_all<'py>(
         result.append(document(data.py(), &mut reader, options.clone(), &mut stack, Some(&mut keys))?)?;
     }
     Ok(result)
+}
+
+/// Owns the input snapshot, but never retains decoded documents between calls.
+#[pyclass(module = "elune._elune", name = "_DecodeIterator")]
+pub struct DecodeIterator {
+    source: Option<Py<PyAny>>,
+    options: Option<Py<PyAny>>,
+    bytes: Option<Py<PyBytes>>,
+    position: usize,
+    finished: bool,
+}
+
+impl DecodeIterator {
+    fn next_document<'py>(&mut self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyDict>>> {
+        let options = codec_options::resolve_all(self.options.as_ref().map(|value| value.bind(py)))?;
+        if let Some(source) = self.source.take() {
+            let source = source.bind(py);
+            self.bytes = Some(match source.cast::<PyBytes>() {
+                Ok(bytes) => bytes.clone().unbind(),
+                Err(_) => PyBytes::new(py, &input(source)?).unbind(),
+            });
+        }
+        let Some(bytes) = &self.bytes else {
+            return Ok(None);
+        };
+        let bytes = bytes.bind(py).as_bytes();
+        if self.position == bytes.len() {
+            return Ok(None);
+        }
+        let mut reader = Reader::new(&bytes[self.position..]);
+        let result = document(py, &mut reader, options, &mut Vec::new(), None)?;
+        self.position += reader.position();
+        Ok(Some(result))
+    }
+}
+
+#[pymethods]
+impl DecodeIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__<'py>(&mut self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyDict>>> {
+        if self.finished {
+            return Ok(None);
+        }
+        let result = self.next_document(py);
+        if !matches!(&result, Ok(Some(_))) {
+            self.__clear__();
+        }
+        result
+    }
+
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        visit.call(&self.source)?;
+        visit.call(&self.options)?;
+        visit.call(&self.bytes)
+    }
+
+    fn __clear__(&mut self) {
+        self.source = None;
+        self.options = None;
+        self.bytes = None;
+        self.finished = true;
+    }
+}
+
+/// Lazily decode concatenated BSON documents, one document per next() call.
+#[pyfunction]
+#[pyo3(signature = (data, codec_options=None))]
+pub fn decode_iter(data: Py<PyAny>, codec_options: Option<Py<PyAny>>) -> DecodeIterator {
+    DecodeIterator {
+        source: Some(data),
+        options: codec_options,
+        bytes: None,
+        position: 0,
+        finished: false,
+    }
+}
+
+/// Check whether bytes contain exactly one document decodable with default options.
+#[pyfunction]
+pub fn is_valid(data: &Bound<'_, PyAny>) -> PyResult<bool> {
+    data.cast::<PyBytes>()?;
+    match decode(data, None) {
+        Ok(_) => Ok(true),
+        Err(error) if error.is_instance_of::<PyException>(data.py()) => Ok(false),
+        Err(error) => Err(error),
+    }
 }

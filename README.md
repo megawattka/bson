@@ -29,7 +29,7 @@ It is an independent codec, not a replacement backend for the PyMongo driver.
 ## Quick start
 
 ```python
-from elune import ObjectId, decode, decode_all, encode
+from elune import ObjectId, decode, decode_all, decode_iter, encode, is_valid
 
 document = {
     "_id": ObjectId(),
@@ -42,6 +42,9 @@ data = encode(document)
 assert decode(data) == document
 assert decode_all(data + data) == [document, document]
 assert decode_all(b"") == []
+assert list(decode_iter(data + data)) == [document, document]
+assert is_valid(data)
+assert not is_valid(data + data)
 ```
 
 | Function | Behavior |
@@ -49,10 +52,23 @@ assert decode_all(b"") == []
 | `encode(document, check_keys=False, codec_options=None)` | Encode a dictionary as `bytes`. |
 | `decode(data, codec_options=None)` | Decode exactly one document; reject trailing bytes. |
 | `decode_all(data, codec_options=None)` | Decode concatenated documents into a list. |
+| `decode_iter(data, codec_options=None)` | Lazily yield concatenated documents one at a time. |
+| `is_valid(data)` | Check that `bytes` contain exactly one document decodable with default options. |
 
 Decoding accepts `bytes` and compatible byte buffers, including `bytearray`
 and `memoryview`. `decode_all` takes one concatenated buffer, not a list of
 buffers.
+
+`decode_iter` accepts the same buffers as `decode_all`, but decodes only when
+the iterator advances. Empty input yields no documents. Malformed documents
+and trailing bytes raise `InvalidBSON` when reached; the iterator then stops.
+Mutable or exported buffers are snapshotted on the first iteration. No list
+of decoded documents is retained; the input buffer remains in memory.
+
+Like PyMongo, `is_valid` accepts only `bytes` (including subclasses), raising
+`TypeError` for other inputs. It returns `False` for empty input, malformed
+documents, trailing bytes, and values that cannot be decoded with default
+codec options, such as out-of-range datetimes.
 
 ## Types and validation
 

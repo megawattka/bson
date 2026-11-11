@@ -21,7 +21,7 @@ from ._elune import regex as regex
 from ._elune import timestamp as timestamp
 
 if TYPE_CHECKING:
-    from collections.abc import Buffer
+    from collections.abc import Buffer, Iterator
 
     from .binary import (
         BINARY_SUBTYPE as BINARY_SUBTYPE,
@@ -126,5 +126,45 @@ if TYPE_CHECKING:
             InvalidBSON: Any document in the input is malformed or truncated.
             TypeError: An argument has an invalid type or an incompatible buffer
                 format.
+        """
+        ...
+
+    def decode_iter(
+        data: Buffer,
+        /,
+        *,
+        codec_options: CodecOptions | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Decode concatenated BSON documents lazily.
+
+        Args:
+            data: Buffer containing consecutive BSON documents. Mutable or
+                exported buffers are snapshotted at the first iteration.
+            codec_options: Codec settings. Uses DEFAULT_CODEC_OPTIONS if None.
+
+        Returns:
+            An iterator yielding independent dictionaries in input order.
+            Empty input yields no documents. Validation and decoding happen
+            during iteration, not when this function is called.
+
+        Raises:
+            InvalidBSON: Iteration reaches malformed or truncated BSON,
+                including trailing bytes after the final document.
+            TypeError: An argument has an invalid type or buffer format.
+        """
+        ...
+
+    def is_valid(data: bytes) -> bool:
+        """Check whether bytes contain exactly one decodable BSON document.
+
+        Args:
+            data: BSON bytes, including instances of bytes subclasses.
+
+        Returns:
+            True if decoding with default codec options succeeds. Returns
+            False for empty input, malformed BSON, or trailing data.
+
+        Raises:
+            TypeError: The input is not bytes.
         """
         ...

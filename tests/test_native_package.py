@@ -131,7 +131,9 @@ def test_public_exports():
         "create_decimal128_context",
         "decode",
         "decode_all",
+        "decode_iter",
         "encode",
+        "is_valid",
     }
     namespace: dict[str, Any] = {}
     exec("from elune import *", namespace)  # ruff: ignore[exec-builtin]

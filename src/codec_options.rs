@@ -1,5 +1,6 @@
 //! Codec policy is parsed once per API call and passed through the traversal.
 
+use pyo3::class::gc::{PyTraverseError, PyVisit};
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyType};
@@ -173,6 +174,21 @@ pub fn decode_custom<'py>(
 
 #[pymethods]
 impl TypeRegistry {
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        for codec in &self.codecs {
+            visit.call(codec)?;
+        }
+        visit.call(&self.fallback)?;
+        for (kind, transform) in self.encoders.iter().chain(&self.decoders) {
+            visit.call(kind)?;
+            visit.call(transform)?;
+        }
+        for transform in self.encoder_map.values().chain(self.decoder_map.values()) {
+            visit.call(transform)?;
+        }
+        Ok(())
+    }
+
     #[new]
     #[pyo3(signature = (type_codecs=None, fallback_encoder=None))]
     fn new(
@@ -304,6 +320,11 @@ impl Default for CodecOptions {
 
 #[pymethods]
 impl CodecOptions {
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        visit.call(&self.tzinfo)?;
+        visit.call(&self.type_registry)
+    }
+
     #[new]
     #[pyo3(signature = (uuid_representation=0, *, tz_aware=false, datetime_conversion=1, type_registry=None, tzinfo=None))]
     fn new(

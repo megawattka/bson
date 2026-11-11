@@ -25,6 +25,8 @@ fn _elune(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(encoder::encode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode, module)?)?;
     module.add_function(wrap_pyfunction!(decoder::decode_all, module)?)?;
+    module.add_function(wrap_pyfunction!(decoder::decode_iter, module)?)?;
+    module.add_function(wrap_pyfunction!(decoder::is_valid, module)?)?;
     module.add_class::<codec_options::CodecOptions>()?;
     module.add_class::<codec_options::TypeEncoder>()?;
     module.add_class::<codec_options::TypeDecoder>()?;
@@ -146,7 +148,9 @@ fn _elune(module: &Bound<'_, PyModule>) -> PyResult<()> {
                 "create_decimal128_context",
                 "decode",
                 "decode_all",
+                "decode_iter",
                 "encode",
+                "is_valid",
             ],
         )?,
     )?;
